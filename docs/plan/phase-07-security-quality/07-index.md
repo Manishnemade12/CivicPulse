@@ -14,3 +14,11 @@
 3. 07.3 Privacy test checklist
 4. 07.4 Migrations (Flyway) enabled for production
 5. 07.5 Deployment runbook (Supabase / AWS)
+
+## Docs
+
+- 07.1: `07-01-authz.md`
+- 07.2: `07-02-validation-errors.md`
+- 07.3: `07-03-privacy-checklist.md`
+- 07.4: `07-04-migrations-flyway.md`
+- 07.5: `07-05-deployment-runbook.md`

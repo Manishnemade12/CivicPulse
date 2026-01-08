@@ -16,4 +16,9 @@
 
 Links:
 
+- System design notes: `01-00-system-design-notes.md`
 - Schema SQL: `01-schema.sql`
+- Apply locally: `01-01-apply-local-docker.md`
+- Apply on Supabase: `01-02-apply-supabase.md`
+- Seed data: `01-03-seed-data.md`
+- ERD: `01-04-erd.md`

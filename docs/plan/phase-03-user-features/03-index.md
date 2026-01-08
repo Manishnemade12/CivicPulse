@@ -15,3 +15,10 @@ Implement one API + one tiny frontend page to verify immediately.
 2. 03.2 Raise complaint (anonymous)
 3. 03.3 My complaints list
 4. 03.4 Complaint detail
+
+## Docs
+
+- 03.1: `03-01-list-categories-areas.md`
+- 03.2: `03-02-raise-complaint.md`
+- 03.3: `03-03-my-complaints.md`
+- 03.4: `03-04-complaint-detail.md`

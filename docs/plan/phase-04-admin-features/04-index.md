@@ -12,3 +12,9 @@
 2. 04.2 Admin update status + action log
 3. 04.3 Auto-create community post on resolve
 4. 04.4 Admin UI panel to drive these APIs
+
+## Docs
+
+- 04.1: `04-01-admin-list-complaints.md`
+- 04.2: `04-02-admin-update-status.md`
+- 04.3: `04-03-auto-post-on-resolve.md`

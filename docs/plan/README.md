@@ -47,6 +47,10 @@ Then follow:
 - Phase 06 index: `phase-06-frontend/06-index.md`
 - Phase 07 index: `phase-07-security-quality/07-index.md`
 
+## Cross-phase verification
+
+- Traceability (schema → API → frontend): `TRACEABILITY.md`
+
 ## Parallel delivery pattern (recommended)
 
 Repeat this loop:

@@ -24,3 +24,13 @@ Notes:
 
 - You can keep `ddl-auto=update` in dev while the schema is stabilizing.
 - For production, move to Flyway migrations.
+
+## Docs
+
+- System design: `02-00-system-design.md`
+- Health/version chunk: `02-01-health-version.md`
+- API contracts (build order): `02-02-api-contracts.md`
+
+Cross-check:
+
+- Traceability (schema → API → frontend): `../TRACEABILITY.md`
