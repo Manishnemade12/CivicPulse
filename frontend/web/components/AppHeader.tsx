@@ -23,14 +23,15 @@ export function AppHeader() {
             <Link href="/" style={{ fontWeight: 700 }}>
               CivicPulse
             </Link>
-            <Link href="/complaints">Complaints</Link>
+            <Link href="/complaints/new">Raise Complaint</Link>
+            <Link href="/complaints/my">My Complaints</Link>
             <Link href="/community">Community</Link>
             <Link href="/admin/complaints">Admin</Link>
           </div>
 
           <div style={{ display: "flex", gap: 12 }}>
-            <Link href="/auth/login">Login</Link>
-            <Link href="/auth/register">Register</Link>
+            <Link href="/login">Login</Link>
+            <Link href="/register">Register</Link>
           </div>
         </nav>
       </Container>

@@ -22,3 +22,4 @@ Links:
 - Apply on Supabase: `01-02-apply-supabase.md`
 - Seed data: `01-03-seed-data.md`
 - ERD: `01-04-erd.md`
+- Local → Supabase migration: `01-05-local-to-supabase-migration.md`
