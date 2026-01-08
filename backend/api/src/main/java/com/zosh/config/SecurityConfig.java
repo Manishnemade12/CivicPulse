@@ -34,6 +34,7 @@ public class SecurityConfig {
                 "/api/areas",
                 "/api/complaint-categories",
                 "/api/community/feed",
+                "/api/community/posts/*/comments",
                 "/api/db/health"
             ).permitAll()
             .requestMatchers(HttpMethod.POST, "/api/complaints").permitAll()
