@@ -31,6 +31,15 @@ Notes:
 
 ### 2) Run backend API
 
+One-command option (starts Postgres + applies schema/seed + runs backend):
+
+```bash
+cd "CivicPulse "
+./scripts/dev-backend.sh
+```
+
+Guide: `docs/plan/phase-00-setup/00-02-one-command-backend.md`
+
 ```bash
 cd "CivicPulse /backend/api"
 DB_PORT=5433 ./mvnw spring-boot:run
@@ -58,6 +67,13 @@ Open:
 
 - Stop backend/frontend: press `Ctrl + C` in their terminals.
 - Stop Postgres:
+
+```bash
+cd "CivicPulse "
+./scripts/stop-backend.sh
+```
+
+Or manually:
 
 ```bash
 cd "CivicPulse "

@@ -12,6 +12,12 @@ Insert minimum seed data so backend and frontend screens can be tested without m
 
 ## Steps (psql)
 
+Recommended: run the seed file:
+
+- `docs/plan/phase-01-database/02-seed.sql`
+
+Or run the SQL manually:
+
 ```sql
 insert into complaint_categories(name)
 values ('Roads'), ('Water'), ('Sanitation'), ('Safety')

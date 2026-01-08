@@ -23,11 +23,12 @@ Create the same schema on Supabase Postgres.
 
 ## Notes (Supabase)
 
-- Supabase supports `uuid-ossp`, but if you hit an extension permission error, switch to `pgcrypto`:
+- Schema uses `pgcrypto` + `gen_random_uuid()` by default (works on local Postgres and Supabase).
+
+If you hit an extension permission error, ask Supabase admin privileges or use a project that allows extensions.
 
 ```sql
 create extension if not exists "pgcrypto";
--- then use: gen_random_uuid() instead of uuid_generate_v4()
 ```
 
 ## Acceptance criteria

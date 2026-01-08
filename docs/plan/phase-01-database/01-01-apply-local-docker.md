@@ -18,6 +18,19 @@ cd "CivicPulse "
 docker compose -f infra/docker-compose.yml up -d
 ```
 
+On a **fresh** local DB (new Docker volume), the container will auto-run:
+
+- `docs/plan/phase-01-database/01-schema.sql`
+- `docs/plan/phase-01-database/02-seed.sql`
+
+If you already have an existing volume and want to re-apply from scratch:
+
+```bash
+cd "CivicPulse "
+docker compose -f infra/docker-compose.yml down -v
+docker compose -f infra/docker-compose.yml up -d
+```
+
 2) Open `psql` inside the container
 
 ```bash
@@ -26,9 +39,10 @@ docker exec -it civicpulse-postgres psql -U civicpulse -d civicpulse
 
 3) Run schema SQL
 
-Option A (recommended): copy-paste the contents of `docs/plan/phase-01-database/01-schema.sql` into the `psql` session.
+If you prefer manual apply (without resetting the volume), copy-paste:
 
-Option B: run it from file (requires file inside container). If you want this, we can add a helper script later.
+- `docs/plan/phase-01-database/01-schema.sql`
+- `docs/plan/phase-01-database/02-seed.sql`
 
 4) Verify
 

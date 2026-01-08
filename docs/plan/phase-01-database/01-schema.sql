@@ -2,7 +2,8 @@
 -- Source: moved from Phase 00 notes
 
 -- Enable UUID support
-create extension if not exists "uuid-ossp";
+-- Prefer pgcrypto for Supabase compatibility
+create extension if not exists "pgcrypto";
 
 -- =========================
 -- ENUM TYPES
@@ -31,7 +32,7 @@ create type community_post_type as enum (
 -- =========================
 
 create table users (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   name varchar(100) not null,
   email varchar(150) unique not null,
   password_hash text not null,
@@ -44,7 +45,7 @@ create table users (
 -- =========================
 
 create table areas (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   city varchar(100) not null,
   zone varchar(100),
   ward varchar(100),
@@ -56,7 +57,7 @@ create table areas (
 -- =========================
 
 create table complaint_categories (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   name varchar(100) unique not null
 );
 
@@ -65,7 +66,7 @@ create table complaint_categories (
 -- =========================
 
 create table complaints (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   area_id uuid not null references areas(id) on delete restrict,
   category_id uuid not null references complaint_categories(id),
   anonymous_user_hash varchar(255) not null,
@@ -86,7 +87,7 @@ create index idx_complaints_user_hash on complaints(anonymous_user_hash);
 -- =========================
 
 create table complaint_actions (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   complaint_id uuid not null references complaints(id) on delete cascade,
   admin_id uuid not null references users(id),
   action complaint_action_type not null,
@@ -99,7 +100,7 @@ create table complaint_actions (
 -- =========================
 
 create table community_posts (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   user_id uuid references users(id) on delete set null,
   type community_post_type not null,
   title varchar(200),
@@ -116,7 +117,7 @@ create index idx_posts_user on community_posts(user_id);
 -- =========================
 
 create table comments (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   post_id uuid not null references community_posts(id) on delete cascade,
   user_id uuid not null references users(id),
   comment text not null,
@@ -130,7 +131,7 @@ create index idx_comments_post on comments(post_id);
 -- =========================
 
 create table post_likes (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   post_id uuid not null references community_posts(id) on delete cascade,
   user_id uuid not null references users(id),
   unique (post_id, user_id)

@@ -10,6 +10,9 @@ services:
       - "5433:5432"
     volumes:
       - civicpulse_pgdata:/var/lib/postgresql/data
+      # Auto-apply schema + seed on first init (fresh volume)
+      - ../docs/plan/phase-01-database/01-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ../docs/plan/phase-01-database/02-seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
 
 volumes:
   civicpulse_pgdata:
