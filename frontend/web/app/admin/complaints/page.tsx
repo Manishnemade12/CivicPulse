@@ -113,7 +113,7 @@ export default function AdminComplaintsPage() {
   }
 
   return (
-    <main style={{ padding: 24 }}>
+    <main className="p-6">
       <h1>Admin · Complaints</h1>
 
       <p style={{ opacity: 0.85 }}>

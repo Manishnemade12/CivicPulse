@@ -131,7 +131,7 @@ export default function CommunityPostDetailPage() {
 
   if (loading) {
     return (
-      <main style={{ padding: 24 }}>
+      <main className="p-6">
         <Container>
           <p>{checking ? "Checking session…" : "Loading..."}</p>
         </Container>
@@ -140,7 +140,7 @@ export default function CommunityPostDetailPage() {
   }
 
   return (
-    <main style={{ padding: 24 }}>
+    <main className="p-6">
       <Container>
         <p>
           <Link href="/community">← Back to feed</Link>

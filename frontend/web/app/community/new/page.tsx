@@ -33,7 +33,7 @@ export default function CommunityNewPostPage() {
 
   if (checking) {
     return (
-      <main style={{ padding: 24 }}>
+      <main className="p-6">
         <h1>Create Post</h1>
         <p>Checking session…</p>
       </main>
@@ -79,7 +79,7 @@ export default function CommunityNewPostPage() {
   }
 
   return (
-    <main style={{ padding: 24 }}>
+    <main className="p-6">
       <h1>Create Post</h1>
 
       {error ? (
