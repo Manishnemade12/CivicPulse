@@ -33,3 +33,22 @@ export async function clientPost<T>(path: string, body: unknown): Promise<T> {
   if (!res.ok) throw new Error(await parseError(res));
   return (await res.json()) as T;
 }
+
+export async function clientPut<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(path, {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+  return (await res.json()) as T;
+}
+
+export async function clientDelete(path: string): Promise<void> {
+  const res = await fetch(path, {
+    method: "DELETE",
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+}

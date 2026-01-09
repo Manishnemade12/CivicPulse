@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { getOrCreateAnonymousUserHash } from "../../../lib/anon";
-import { clientGet } from "../../../lib/clientApi";
+import { clientDelete, clientGet } from "../../../lib/clientApi";
 import { useRequireAuth } from "../../../lib/useRequireAuth";
 
 type ComplaintSummary = {
@@ -21,28 +21,36 @@ export default function MyComplaintsPage() {
   const [items, setItems] = useState<ComplaintSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    setActionError(null);
+
+    try {
+      const hash = getOrCreateAnonymousUserHash();
+      const res = await clientGet<ComplaintSummary[]>(
+        `/api/complaints/my?anonymousUserHash=${encodeURIComponent(hash)}`
+      );
+      setItems(res);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
 
-    async function load() {
-      setLoading(true);
-      setError(null);
-
+    void (async () => {
       try {
-        const hash = getOrCreateAnonymousUserHash();
-        const res = await clientGet<ComplaintSummary[]>(
-          `/api/complaints/my?anonymousUserHash=${encodeURIComponent(hash)}`
-        );
-        if (!cancelled) setItems(res);
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load");
+        await load();
       } finally {
-        if (!cancelled) setLoading(false);
+        // no-op
       }
-    }
-
-    void load();
+    })();
     return () => {
       cancelled = true;
     };
@@ -63,6 +71,7 @@ export default function MyComplaintsPage() {
 
       {loading ? <p>Loading…</p> : null}
       {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
+      {actionError ? <p style={{ color: "crimson" }}>{actionError}</p> : null}
 
       {!loading && items.length === 0 ? <p>No complaints yet.</p> : null}
 
@@ -74,6 +83,25 @@ export default function MyComplaintsPage() {
             </div>
             <div style={{ opacity: 0.8, fontSize: 14 }}>
               Status: {c.status} · Created: {new Date(c.createdAt).toLocaleString()}
+            </div>
+            <div style={{ marginTop: 8 }}>
+              <button
+                type="button"
+                onClick={async () => {
+                  setActionError(null);
+                  try {
+                    const hash = getOrCreateAnonymousUserHash();
+                    await clientDelete(
+                      `/api/complaints/${encodeURIComponent(c.id)}?anonymousUserHash=${encodeURIComponent(hash)}`
+                    );
+                    await load();
+                  } catch (e) {
+                    setActionError(e instanceof Error ? e.message : "Failed to delete");
+                  }
+                }}
+              >
+                Delete
+              </button>
             </div>
           </li>
         ))}

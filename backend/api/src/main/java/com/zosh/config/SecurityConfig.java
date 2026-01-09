@@ -33,12 +33,8 @@ public class SecurityConfig {
                 "/api/version",
                 "/api/areas",
                 "/api/complaint-categories",
-                "/api/community/feed",
-                "/api/community/posts/*/comments",
                 "/api/db/health"
             ).permitAll()
-            .requestMatchers(HttpMethod.POST, "/api/complaints").permitAll()
-            .requestMatchers(HttpMethod.GET, "/api/complaints/my", "/api/complaints/*").permitAll()
             .requestMatchers("/api/auth/**").permitAll()
             .requestMatchers("/api/admin/**").hasRole("ADMIN")
             .anyRequest().authenticated()

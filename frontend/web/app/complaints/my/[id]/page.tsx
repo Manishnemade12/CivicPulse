@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { getOrCreateAnonymousUserHash } from "../../../../lib/anon";
-import { clientGet } from "../../../../lib/clientApi";
+import { clientDelete, clientGet } from "../../../../lib/clientApi";
 import { useRequireAuth } from "../../../../lib/useRequireAuth";
 
 type ComplaintDetail = {
@@ -16,12 +18,16 @@ type ComplaintDetail = {
   updatedAt: string;
 };
 
-export default function ComplaintDetailPage({ params }: { params: { id: string } }) {
+export default function ComplaintDetailPage() {
   const { checking } = useRequireAuth();
+  const router = useRouter();
+  const routeParams = useParams<{ id: string }>();
+  const complaintId = routeParams.id;
 
   const [data, setData] = useState<ComplaintDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -33,7 +39,7 @@ export default function ComplaintDetailPage({ params }: { params: { id: string }
       try {
         const hash = getOrCreateAnonymousUserHash();
         const res = await clientGet<ComplaintDetail>(
-          `/api/complaints/${encodeURIComponent(params.id)}?anonymousUserHash=${encodeURIComponent(hash)}`
+          `/api/complaints/${encodeURIComponent(complaintId)}?anonymousUserHash=${encodeURIComponent(hash)}`
         );
         if (!cancelled) setData(res);
       } catch (e) {
@@ -43,11 +49,11 @@ export default function ComplaintDetailPage({ params }: { params: { id: string }
       }
     }
 
-    void load();
+    if (complaintId) void load();
     return () => {
       cancelled = true;
     };
-  }, [params.id]);
+  }, [complaintId]);
 
   if (checking) {
     return (
@@ -60,13 +66,36 @@ export default function ComplaintDetailPage({ params }: { params: { id: string }
 
   return (
     <main className="p-6">
+      <p>
+        <Link href="/complaints/my">← Back to My Complaints</Link>
+      </p>
       <h1>Complaint Detail</h1>
 
       {loading ? <p>Loading…</p> : null}
       {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
+      {actionError ? <p style={{ color: "crimson" }}>{actionError}</p> : null}
 
       {data ? (
         <div style={{ display: "grid", gap: 10, maxWidth: 720 }}>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={async () => {
+                setActionError(null);
+                try {
+                  const hash = getOrCreateAnonymousUserHash();
+                  await clientDelete(
+                    `/api/complaints/${encodeURIComponent(complaintId)}?anonymousUserHash=${encodeURIComponent(hash)}`
+                  );
+                  router.push("/complaints/my");
+                } catch (e) {
+                  setActionError(e instanceof Error ? e.message : "Failed to delete");
+                }
+              }}
+            >
+              Delete complaint
+            </button>
+          </div>
           <div>
             <div style={{ opacity: 0.8, fontSize: 14 }}>ID</div>
             <div>{data.id}</div>

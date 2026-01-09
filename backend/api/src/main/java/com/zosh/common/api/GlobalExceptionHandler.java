@@ -10,6 +10,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.zosh.common.exception.ForbiddenException;
 import com.zosh.common.exception.NotFoundException;
 
 import jakarta.validation.ConstraintViolation;
@@ -22,6 +23,12 @@ public class GlobalExceptionHandler {
 	public ResponseEntity<ErrorResponse> handleNotFound(NotFoundException ex) {
 		return ResponseEntity.status(HttpStatus.NOT_FOUND)
 				.body(ErrorResponse.of("NOT_FOUND", ex.getMessage()));
+	}
+
+	@ExceptionHandler(ForbiddenException.class)
+	public ResponseEntity<ErrorResponse> handleForbidden(ForbiddenException ex) {
+		return ResponseEntity.status(HttpStatus.FORBIDDEN)
+				.body(ErrorResponse.of("FORBIDDEN", ex.getMessage()));
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)

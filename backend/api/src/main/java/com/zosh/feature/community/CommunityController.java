@@ -12,10 +12,12 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.zosh.common.exception.NotFoundException;
+import com.zosh.common.exception.ForbiddenException;
 import com.zosh.db.entity.CommentEntity;
 import com.zosh.db.entity.CommunityPostEntity;
 import com.zosh.db.entity.PostLikeEntity;
@@ -51,11 +53,27 @@ public class CommunityController {
 	}
 
 	public record FeedItemDto(UUID id, String type, String title, String content, List<String> mediaUrls, Instant createdAt) {}
+	public record MyPostDto(UUID id, String type, String title, String content, List<String> mediaUrls, Instant createdAt) {}
 
 	@GetMapping("/api/community/feed")
 	public List<FeedItemDto> feed() {
 		return communityPostRepository.findTop50ByOrderByCreatedAtDesc().stream()
 				.map(p -> new FeedItemDto(
+						p.getId(),
+						p.getType().name(),
+						p.getTitle(),
+						p.getContent(),
+						p.getMediaUrls() == null ? Collections.emptyList() : Arrays.asList(p.getMediaUrls()),
+						p.getCreatedAt()
+				))
+				.toList();
+	}
+
+	@GetMapping("/api/community/me/posts")
+	public List<MyPostDto> myPosts(@AuthenticationPrincipal Jwt jwt) {
+		UserEntity user = requireUser(jwt);
+		return communityPostRepository.findByUserIdOrderByCreatedAtDesc(user.getId()).stream()
+				.map(p -> new MyPostDto(
 						p.getId(),
 						p.getType().name(),
 						p.getTitle(),
@@ -89,6 +107,43 @@ public class CommunityController {
 
 		CommunityPostEntity saved = communityPostRepository.save(post);
 		return new CreatePostResponse(saved.getId());
+	}
+
+	public record UpdatePostRequest(
+			@Size(max = 200) String title,
+			@NotBlank @Size(max = 5000) String content,
+			List<@Size(max = 2048) String> mediaUrls
+	) {}
+	public record UpdatePostResponse(boolean ok) {}
+
+	@PutMapping("/api/community/posts/{id}")
+	public UpdatePostResponse updateMyPost(
+			@PathVariable UUID id,
+			@Valid @RequestBody UpdatePostRequest req,
+			@AuthenticationPrincipal Jwt jwt
+	) {
+		UserEntity user = requireUser(jwt);
+		CommunityPostEntity post = communityPostRepository.findByIdAndUserId(id, user.getId())
+				.orElseThrow(() -> new NotFoundException("Post not found"));
+
+		post.setTitle(req.title());
+		post.setContent(req.content());
+		post.setMediaUrls(req.mediaUrls() == null ? null : req.mediaUrls().toArray(new String[0]));
+		communityPostRepository.save(post);
+		return new UpdatePostResponse(true);
+	}
+
+	@DeleteMapping("/api/community/posts/{id}")
+	public DeleteResponse deleteMyPost(
+			@PathVariable UUID id,
+			@AuthenticationPrincipal Jwt jwt
+	) {
+		UserEntity user = requireUser(jwt);
+		long deleted = communityPostRepository.deleteByIdAndUserId(id, user.getId());
+		if (deleted == 0) {
+			throw new NotFoundException("Post not found");
+		}
+		return new DeleteResponse(true);
 	}
 
 	public record CommentDto(UUID id, UUID userId, String comment, Instant createdAt) {}
@@ -150,6 +205,31 @@ public class CommunityController {
 		communityPostRepository.findById(id).orElseThrow(() -> new NotFoundException("Post not found"));
 		postLikeRepository.deleteByPostIdAndUserId(id, user.getId());
 		return new LikeResponse(true);
+	}
+
+	public record DeleteResponse(boolean ok) {}
+
+	@DeleteMapping("/api/community/posts/{postId}/comments/{commentId}")
+	public DeleteResponse deleteMyComment(
+			@PathVariable UUID postId,
+			@PathVariable UUID commentId,
+			@AuthenticationPrincipal Jwt jwt
+	) {
+		UserEntity user = requireUser(jwt);
+		// ensure post exists
+		communityPostRepository.findById(postId).orElseThrow(() -> new NotFoundException("Post not found"));
+		// ensure comment exists + belongs to this post
+		CommentEntity c = commentRepository.findById(commentId)
+				.orElseThrow(() -> new NotFoundException("Comment not found"));
+		if (!c.getPost().getId().equals(postId)) {
+			throw new NotFoundException("Comment not found");
+		}
+
+		long deleted = commentRepository.deleteByIdAndUserId(commentId, user.getId());
+		if (deleted == 0) {
+			throw new ForbiddenException("Not allowed");
+		}
+		return new DeleteResponse(true);
 	}
 
 	private UserEntity requireUser(Jwt jwt) {

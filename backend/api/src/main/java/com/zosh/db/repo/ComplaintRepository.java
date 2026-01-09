@@ -11,6 +11,7 @@ import com.zosh.db.entity.ComplaintEntity;
 public interface ComplaintRepository extends JpaRepository<ComplaintEntity, UUID> {
 	List<ComplaintEntity> findByAnonymousUserHashOrderByCreatedAtDesc(String anonymousUserHash);
 	Optional<ComplaintEntity> findByIdAndAnonymousUserHash(UUID id, String anonymousUserHash);
+	long deleteByIdAndAnonymousUserHash(UUID id, String anonymousUserHash);
 
 	List<ComplaintEntity> findAllByOrderByCreatedAtDesc();
 	List<ComplaintEntity> findByStatusOrderByCreatedAtDesc(com.zosh.db.enums.ComplaintStatus status);

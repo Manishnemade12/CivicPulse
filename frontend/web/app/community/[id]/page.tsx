@@ -37,6 +37,7 @@ export default function CommunityPostDetailPage() {
 
   const [post, setPost] = useState<FeedItem | null>(null);
   const [comments, setComments] = useState<CommentDto[]>([]);
+  const [meId, setMeId] = useState<string | null>(null);
 
   const [commentText, setCommentText] = useState("");
   const [liked, setLiked] = useState(false);
@@ -51,10 +52,18 @@ export default function CommunityPostDetailPage() {
     setLoading(true);
     setError(null);
     try {
-      const [feedRes, commentsRes] = await Promise.all([
+      const [meRes, feedRes, commentsRes] = await Promise.all([
+        fetch("/api/me", { cache: "no-store" }),
         fetch("/api/community/feed", { cache: "no-store" }),
         fetch(`/api/community/posts/${postId}/comments`, { cache: "no-store" }),
       ]);
+
+      if (meRes.ok) {
+        const me = (await meRes.json()) as { id: string };
+        setMeId(me.id);
+      } else {
+        setMeId(null);
+      }
 
       if (feedRes.ok) {
         const feed = (await feedRes.json()) as FeedItem[];
@@ -69,6 +78,28 @@ export default function CommunityPostDetailPage() {
       setError(err instanceof Error ? err.message : "Failed to load post");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function onDeleteComment(commentId: string) {
+    setActionError(null);
+    try {
+      const res = await fetch(
+        `/api/community/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`,
+        {
+          method: "DELETE",
+          cache: "no-store",
+        }
+      );
+      if (!res.ok) {
+        if (res.status === 401) throw new Error("Login required.");
+        if (res.status === 403) throw new Error("You can only delete your own comment.");
+        const txt = await res.text().catch(() => "");
+        throw new Error(txt || `Request failed (HTTP ${res.status})`);
+      }
+      await load();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Failed to delete comment");
     }
   }
 
@@ -210,8 +241,15 @@ export default function CommunityPostDetailPage() {
                   borderRadius: 10,
                 }}
               >
-                <div style={{ opacity: 0.75, fontSize: 12 }}>
-                  {new Date(c.createdAt).toLocaleString()}
+                <div style={{ display: "flex", gap: 10, justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ opacity: 0.75, fontSize: 12 }}>
+                    {new Date(c.createdAt).toLocaleString()}
+                  </div>
+                  {meId && c.userId === meId ? (
+                    <button type="button" onClick={() => void onDeleteComment(c.id)}>
+                      Delete
+                    </button>
+                  ) : null}
                 </div>
                 <div style={{ whiteSpace: "pre-wrap", marginTop: 6 }}>{c.comment}</div>
               </li>

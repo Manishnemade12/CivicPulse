@@ -45,6 +45,7 @@ export function AppHeader() {
             <Link href="/" className="font-semibold">
               CivicPulse
             </Link>
+            <Link href="/profile">Profile</Link>
             <Link href="/complaints/new">Raise Complaint</Link>
             <Link href="/complaints/my">My Complaints</Link>
             <Link href="/community">Community</Link>

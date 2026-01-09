@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -16,6 +17,7 @@ import com.zosh.db.entity.AreaEntity;
 import com.zosh.db.entity.ComplaintCategoryEntity;
 import com.zosh.db.entity.ComplaintEntity;
 import com.zosh.db.repo.AreaRepository;
+import com.zosh.db.repo.ComplaintActionRepository;
 import com.zosh.db.repo.ComplaintCategoryRepository;
 import com.zosh.db.repo.ComplaintRepository;
 
@@ -31,15 +33,18 @@ import org.springframework.validation.annotation.Validated;
 public class ComplaintController {
 
 	private final ComplaintRepository complaintRepository;
+	private final ComplaintActionRepository complaintActionRepository;
 	private final AreaRepository areaRepository;
 	private final ComplaintCategoryRepository complaintCategoryRepository;
 
 	public ComplaintController(
 			ComplaintRepository complaintRepository,
+			ComplaintActionRepository complaintActionRepository,
 			AreaRepository areaRepository,
 			ComplaintCategoryRepository complaintCategoryRepository
 	) {
 		this.complaintRepository = complaintRepository;
+		this.complaintActionRepository = complaintActionRepository;
 		this.areaRepository = areaRepository;
 		this.complaintCategoryRepository = complaintCategoryRepository;
 	}
@@ -124,5 +129,22 @@ public class ComplaintController {
 				c.getCreatedAt(),
 				c.getUpdatedAt()
 		);
+	}
+
+	public record DeleteComplaintResponse(boolean ok) {}
+
+	@DeleteMapping("/api/complaints/{id}")
+	@jakarta.transaction.Transactional
+	public DeleteComplaintResponse deleteComplaint(
+			@PathVariable UUID id,
+			@RequestParam @NotBlank @Size(min = 10, max = 255) String anonymousUserHash
+	) {
+		// Defensive cleanup: some existing DBs may not have ON DELETE CASCADE on complaint_actions.
+		complaintActionRepository.deleteByComplaintId(id);
+		long deleted = complaintRepository.deleteByIdAndAnonymousUserHash(id, anonymousUserHash);
+		if (deleted == 0) {
+			throw new NotFoundException("Complaint not found");
+		}
+		return new DeleteComplaintResponse(true);
 	}
 }
