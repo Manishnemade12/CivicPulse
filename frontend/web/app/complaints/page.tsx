@@ -1,13 +1,5 @@
-import Link from "next/link";
+import { redirect } from "next/navigation";
 
-export default function ComplaintsPage() {
-  return (
-    <main>
-      <h1>Complaints</h1>
-      <p>Scaffolded list page.</p>
-      <p>
-        <Link href="/complaints/new">Raise a complaint</Link>
-      </p>
-    </main>
-  );
+export default function ComplaintsRedirectPage() {
+  redirect("/complaints/my");
 }

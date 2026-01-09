@@ -4,8 +4,6 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
-import { getToken } from "@/lib/authToken";
-
 type FeedItem = {
   id: string;
   type: string;
@@ -78,12 +76,6 @@ export default function CommunityPostDetailPage() {
     e.preventDefault();
     setActionError(null);
 
-    const token = getToken();
-    if (!token) {
-      setActionError("Login required to comment.");
-      return;
-    }
-
     const trimmed = commentText.trim();
     if (!trimmed) return;
 
@@ -92,7 +84,6 @@ export default function CommunityPostDetailPage() {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ comment: trimmed }),
       });
@@ -110,18 +101,10 @@ export default function CommunityPostDetailPage() {
   async function onToggleLike() {
     setActionError(null);
 
-    const token = getToken();
-    if (!token) {
-      setActionError("Login required to like.");
-      return;
-    }
-
     try {
       const res = await fetch(`/api/community/posts/${postId}/like`, {
         method: liked ? "DELETE" : "POST",
-        headers: {
-          authorization: `Bearer ${token}`,
-        },
+        headers: {},
       });
 
       if (!res.ok) {

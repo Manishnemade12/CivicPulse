@@ -3,10 +3,6 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import { setToken } from "../../lib/authToken";
-
-type AuthResponse = { token: string };
-
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,8 +28,7 @@ export default function LoginPage() {
         throw new Error(`Login failed (HTTP ${res.status})`);
       }
 
-      const data = (await res.json()) as AuthResponse;
-      setToken(data.token);
+      await res.json();
       setOk(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Login failed");
@@ -70,7 +65,7 @@ export default function LoginPage() {
       {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
       {ok ? (
         <p style={{ color: "green" }}>
-          Token saved. Go to <Link href="/admin/complaints">Admin complaints</Link>.
+          Logged in. Go to <Link href="/admin/complaints">Admin complaints</Link>.
         </p>
       ) : null}
 

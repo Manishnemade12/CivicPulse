@@ -3,10 +3,6 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import { setToken } from "../../lib/authToken";
-
-type AuthResponse = { token: string };
-
 export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -33,8 +29,7 @@ export default function RegisterPage() {
         throw new Error(`Register failed (HTTP ${res.status})`);
       }
 
-      const data = (await res.json()) as AuthResponse;
-      setToken(data.token);
+      await res.json();
       setOk(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Register failed");
@@ -77,7 +72,8 @@ export default function RegisterPage() {
       {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
       {ok ? (
         <p style={{ color: "green" }}>
-          Token saved. Go to <Link href="/admin/complaints">Admin complaints</Link>.
+          Account created and logged in. Go to{" "}
+          <Link href="/admin/complaints">Admin complaints</Link>.
         </p>
       ) : null}
 

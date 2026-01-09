@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import Link from "next/link";
 
-import { getToken } from "../../../lib/authToken";
+type MeResponse = { id: string; name: string; email: string; role: string };
 
 type AdminComplaint = {
   id: string;
@@ -23,6 +23,7 @@ export default function AdminComplaintsPage() {
   const [items, setItems] = useState<AdminComplaint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [me, setMe] = useState<MeResponse | null>(null);
 
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [draftStatusById, setDraftStatusById] = useState<Record<string, string>>({});
@@ -30,26 +31,29 @@ export default function AdminComplaintsPage() {
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const token = useMemo(() => getToken(), []);
-
   async function load() {
     setLoading(true);
     setError(null);
     setSuccess(null);
 
     try {
-      if (!token) {
+      const meRes = await fetch("/api/me", { cache: "no-store" });
+      if (meRes.status === 401) {
+        window.location.href = "/login";
+        return;
+      }
+      if (!meRes.ok) throw new Error(`Auth check failed (HTTP ${meRes.status})`);
+      const meJson = (await meRes.json()) as MeResponse;
+      setMe(meJson);
+      if (meJson.role !== "ADMIN") {
         setItems([]);
-        setError("Missing admin token. Login first, then return here.");
+        setError("Forbidden: admin role required.");
         return;
       }
 
       const qs = statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : "";
       const res = await fetch(`/api/admin/complaints${qs}`, {
         cache: "no-store",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       if (!res.ok) {
@@ -83,8 +87,6 @@ export default function AdminComplaintsPage() {
     setSuccess(null);
 
     try {
-      if (!token) throw new Error("Missing admin token");
-
       const status = draftStatusById[id] ?? "";
       const comment = commentById[id] ?? "";
 
@@ -93,7 +95,6 @@ export default function AdminComplaintsPage() {
         cache: "no-store",
         headers: {
           "content-type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ status, comment: comment.trim() ? comment.trim() : null }),
       });

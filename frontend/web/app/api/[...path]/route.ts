@@ -22,6 +22,14 @@ async function proxy(req: NextRequest, prefix: string, pathParts: string[]) {
   const headers = new Headers(req.headers);
   // The Host header can confuse upstream servers.
   headers.delete("host");
+  // Never forward browser cookies to the backend.
+  headers.delete("cookie");
+
+  // If client didn't send Authorization, attach it from our httpOnly cookie.
+  if (!headers.get("authorization")) {
+    const token = req.cookies.get("cp_token")?.value;
+    if (token) headers.set("authorization", `Bearer ${token}`);
+  }
 
   const method = req.method.toUpperCase();
   const bodyText = method === "GET" || method === "HEAD" ? undefined : await req.text();

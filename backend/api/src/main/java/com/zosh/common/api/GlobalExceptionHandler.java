@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.zosh.common.exception.NotFoundException;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -23,14 +26,23 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
-		List<String> details = ex.getBindingResult().getAllErrors().stream().map(err -> {
+		List<ErrorResponse.ErrorDetail> details = ex.getBindingResult().getAllErrors().stream().map(err -> {
 			if (err instanceof FieldError fe) {
-				return fe.getField() + ": " + fe.getDefaultMessage();
+				return ErrorResponse.detail(fe.getField(), fe.getDefaultMessage());
 			}
-			return err.getDefaultMessage();
+			return ErrorResponse.detail(null, err.getDefaultMessage());
 		}).toList();
 		return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-				.body(ErrorResponse.of("VALIDATION_ERROR", "Validation failed", details));
+				.body(ErrorResponse.of("VALIDATION_ERROR", "Invalid request", details));
+	}
+
+	@ExceptionHandler(ConstraintViolationException.class)
+	public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex) {
+		List<ErrorResponse.ErrorDetail> details = ex.getConstraintViolations().stream()
+				.map(this::toDetail)
+				.toList();
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+				.body(ErrorResponse.of("VALIDATION_ERROR", "Invalid request", details));
 	}
 
 	@ExceptionHandler(IllegalArgumentException.class)
@@ -49,5 +61,10 @@ public class GlobalExceptionHandler {
 	public ResponseEntity<ErrorResponse> handleOther(Exception ex) {
 		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 				.body(ErrorResponse.of("INTERNAL_ERROR", "Unexpected error"));
+	}
+
+	private ErrorResponse.ErrorDetail toDetail(ConstraintViolation<?> cv) {
+		String field = cv.getPropertyPath() == null ? null : cv.getPropertyPath().toString();
+		return ErrorResponse.detail(field, cv.getMessage());
 	}
 }

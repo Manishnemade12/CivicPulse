@@ -1,14 +1,9 @@
-export default async function ComplaintDetailPage({
+import { redirect } from "next/navigation";
+
+export default function ComplaintDetailRedirectPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }) {
-  const { id } = await params;
-
-  return (
-    <main>
-      <h1>Complaint Detail</h1>
-      <p>Complaint ID: {id}</p>
-    </main>
-  );
+  redirect(`/complaints/my/${params.id}`);
 }

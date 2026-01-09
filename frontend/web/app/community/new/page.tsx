@@ -1,9 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
-
-import { getToken } from "@/lib/authToken";
+import { useEffect, useMemo, useState } from "react";
 
 type CreatePostResponse = {
   id: string;
@@ -27,15 +25,23 @@ export default function CommunityNewPostPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const res = await fetch("/api/me", { cache: "no-store" });
+      if (cancelled) return;
+      if (res.status === 401) router.push("/login");
+    })().catch(() => {
+      // ignore
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-
-    const token = getToken();
-    if (!token) {
-      setError("Login required to create a post.");
-      return;
-    }
 
     const trimmedContent = content.trim();
     if (!trimmedContent) {
@@ -49,7 +55,6 @@ export default function CommunityNewPostPage() {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           title: title.trim() ? title.trim() : null,
@@ -64,7 +69,7 @@ export default function CommunityNewPostPage() {
       }
 
       const json = (await res.json()) as CreatePostResponse;
-      router.push(`/community/${json.id}`);
+      router.push("/community");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create post");
     } finally {
