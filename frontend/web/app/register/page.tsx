@@ -1,9 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 export default function RegisterPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,6 +35,9 @@ export default function RegisterPage() {
 
       await res.json();
       setOk(true);
+
+      const next = searchParams.get("next") || "/community";
+      router.replace(next);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Register failed");
     } finally {
@@ -72,8 +79,7 @@ export default function RegisterPage() {
       {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
       {ok ? (
         <p style={{ color: "green" }}>
-          Account created and logged in. Go to{" "}
-          <Link href="/admin/complaints">Admin complaints</Link>.
+          Account created and logged in. Redirecting…
         </p>
       ) : null}
 

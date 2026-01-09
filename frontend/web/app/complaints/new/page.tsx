@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import { getOrCreateAnonymousUserHash } from "../../../lib/anon";
 import { clientGet, clientPost } from "../../../lib/clientApi";
+import { useRequireAuth } from "../../../lib/useRequireAuth";
 
 type AreaDto = { id: string; city: string; zone: string | null; ward: string | null };
 type CategoryDto = { id: string; name: string };
@@ -13,6 +14,8 @@ type CategoryDto = { id: string; name: string };
 type CreateComplaintResponse = { id: string };
 
 export default function NewComplaintPage() {
+  const { checking } = useRequireAuth();
+
   const [areas, setAreas] = useState<AreaDto[]>([]);
   const [categories, setCategories] = useState<CategoryDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,6 +69,15 @@ export default function NewComplaintPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  if (checking) {
+    return (
+      <main>
+        <h1>Raise Complaint</h1>
+        <p>Checking session…</p>
+      </main>
+    );
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();

@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
+import { useRequireAuth } from "../../../lib/useRequireAuth";
+
 type CreatePostResponse = {
   id: string;
 };
@@ -17,6 +19,8 @@ function parseMediaUrls(text: string): string[] {
 export default function CommunityNewPostPage() {
   const router = useRouter();
 
+  const { checking } = useRequireAuth();
+
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [mediaUrlsText, setMediaUrlsText] = useState("");
@@ -25,19 +29,16 @@ export default function CommunityNewPostPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const res = await fetch("/api/me", { cache: "no-store" });
-      if (cancelled) return;
-      if (res.status === 401) router.push("/login");
-    })().catch(() => {
-      // ignore
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [router]);
+  // auth enforced by useRequireAuth
+
+  if (checking) {
+    return (
+      <main>
+        <h1>Create Post</h1>
+        <p>Checking session…</p>
+      </main>
+    );
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 
 import { Container } from "@/components/Container";
+import { requireServerAuth } from "@/lib/serverAuth";
 
 type FeedItem = {
   id: string;
@@ -31,6 +32,7 @@ function excerpt(text: string, max = 140): string {
 }
 
 export default async function CommunityPage() {
+  await requireServerAuth("/community");
   const feed = await getFeed();
 
   return (
@@ -40,8 +42,6 @@ export default async function CommunityPage() {
 
         <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
           <Link href="/community/new">Create post</Link>
-          <span style={{ opacity: 0.7 }}>·</span>
-          <Link href="/login">Login</Link>
         </div>
 
         {feed.length === 0 ? <p>No posts yet.</p> : null}

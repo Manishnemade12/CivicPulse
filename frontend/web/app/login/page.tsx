@@ -1,9 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,6 +34,9 @@ export default function LoginPage() {
 
       await res.json();
       setOk(true);
+
+      const next = searchParams.get("next") || "/community";
+      router.replace(next);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Login failed");
     } finally {
@@ -65,7 +72,7 @@ export default function LoginPage() {
       {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
       {ok ? (
         <p style={{ color: "green" }}>
-          Logged in. Go to <Link href="/admin/complaints">Admin complaints</Link>.
+          Logged in. Redirecting…
         </p>
       ) : null}
 

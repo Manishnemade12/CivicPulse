@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { getOrCreateAnonymousUserHash } from "../../../../lib/anon";
 import { clientGet } from "../../../../lib/clientApi";
+import { useRequireAuth } from "../../../../lib/useRequireAuth";
 
 type ComplaintDetail = {
   id: string;
@@ -16,6 +17,8 @@ type ComplaintDetail = {
 };
 
 export default function ComplaintDetailPage({ params }: { params: { id: string } }) {
+  const { checking } = useRequireAuth();
+
   const [data, setData] = useState<ComplaintDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,6 +48,15 @@ export default function ComplaintDetailPage({ params }: { params: { id: string }
       cancelled = true;
     };
   }, [params.id]);
+
+  if (checking) {
+    return (
+      <main>
+        <h1>Complaint Detail</h1>
+        <p>Checking session…</p>
+      </main>
+    );
+  }
 
   return (
     <main>

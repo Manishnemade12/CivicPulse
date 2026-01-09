@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { Container } from "@/components/Container";
+import { useRequireAuth } from "@/lib/useRequireAuth";
 
 type FeedItem = {
   id: string;
@@ -29,6 +30,8 @@ function firstLine(s: string, max = 200): string {
 }
 
 export default function CommunityPostDetailPage() {
+  const { checking } = useRequireAuth();
+
   const params = useParams<{ id: string }>();
   const postId = params.id;
 
@@ -130,7 +133,7 @@ export default function CommunityPostDetailPage() {
     return (
       <main>
         <Container>
-          <p>Loading...</p>
+          <p>{checking ? "Checking session…" : "Loading..."}</p>
         </Container>
       </main>
     );
@@ -183,10 +186,6 @@ export default function CommunityPostDetailPage() {
           <button type="button" onClick={onToggleLike}>
             {liked ? "Unlike" : "Like"}
           </button>
-          <span style={{ opacity: 0.7 }}>
-            (Login required for like/comment)
-          </span>
-          <Link href="/login">Login</Link>
         </div>
 
         {actionError ? (

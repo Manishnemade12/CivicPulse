@@ -12,7 +12,7 @@ public class HomeController {
     @GetMapping("/")
     public String HomeControllerHandler(){
 
-        return "user microser for sollon booking system";
+        return "user";
 
     }
 }
