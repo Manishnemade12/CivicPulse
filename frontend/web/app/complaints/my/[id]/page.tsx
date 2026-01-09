@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { Container } from "@/components/Container";
+import { Button } from "@/components/ui/Button";
+import { Card, CardHeader } from "@/components/ui/Card";
+
 import { getOrCreateAnonymousUserHash } from "../../../../lib/anon";
 import { clientDelete, clientGet } from "../../../../lib/clientApi";
 import { useRequireAuth } from "../../../../lib/useRequireAuth";
@@ -57,81 +61,88 @@ export default function ComplaintDetailPage() {
 
   if (checking) {
     return (
-      <main className="p-6">
-        <h1>Complaint Detail</h1>
-        <p>Checking session…</p>
-      </main>
+      <Container>
+        <h1 className="text-2xl font-semibold">Complaint Detail</h1>
+        <p className="mt-2 text-sm opacity-70">Checking session…</p>
+      </Container>
     );
   }
 
   return (
-    <main className="p-6">
-      <p>
-        <Link href="/complaints/my">← Back to My Complaints</Link>
-      </p>
-      <h1>Complaint Detail</h1>
+    <Container>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link href="/complaints/my" className="text-sm underline">
+          ← Back to My Complaints
+        </Link>
+      </div>
 
-      {loading ? <p>Loading…</p> : null}
-      {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
-      {actionError ? <p style={{ color: "crimson" }}>{actionError}</p> : null}
+      <h1 className="mt-3 text-2xl font-semibold">Complaint Detail</h1>
+
+      {loading ? <p className="mt-3 text-sm opacity-70">Loading…</p> : null}
+      {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
+      {actionError ? <p className="mt-3 text-sm text-red-700">{actionError}</p> : null}
 
       {data ? (
-        <div style={{ display: "grid", gap: 10, maxWidth: 720 }}>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button
-              type="button"
-              onClick={async () => {
-                setActionError(null);
-                try {
-                  const hash = getOrCreateAnonymousUserHash();
-                  await clientDelete(
-                    `/api/complaints/${encodeURIComponent(complaintId)}?anonymousUserHash=${encodeURIComponent(hash)}`
-                  );
-                  router.push("/complaints/my");
-                } catch (e) {
-                  setActionError(e instanceof Error ? e.message : "Failed to delete");
-                }
-              }}
-            >
-              Delete complaint
-            </button>
-          </div>
-          <div>
-            <div style={{ opacity: 0.8, fontSize: 14 }}>ID</div>
-            <div>{data.id}</div>
-          </div>
-          <div>
-            <div style={{ opacity: 0.8, fontSize: 14 }}>Title</div>
-            <div style={{ fontWeight: 600 }}>{data.title}</div>
-          </div>
-          <div>
-            <div style={{ opacity: 0.8, fontSize: 14 }}>Status</div>
-            <div>{data.status}</div>
-          </div>
-          <div>
-            <div style={{ opacity: 0.8, fontSize: 14 }}>Description</div>
-            <div style={{ whiteSpace: "pre-wrap" }}>{data.description}</div>
-          </div>
-          <div>
-            <div style={{ opacity: 0.8, fontSize: 14 }}>Created</div>
-            <div>{new Date(data.createdAt).toLocaleString()}</div>
-          </div>
-          <div>
-            <div style={{ opacity: 0.8, fontSize: 14 }}>Updated</div>
-            <div>{new Date(data.updatedAt).toLocaleString()}</div>
-          </div>
-          {data.images?.length ? (
-            <div>
-              <div style={{ opacity: 0.8, fontSize: 14 }}>Images</div>
-              <ul style={{ paddingLeft: 18 }}>
-                {data.images.map((u) => (
-                  <li key={u}>{u}</li>
-                ))}
-              </ul>
+        <Card className="mt-4 max-w-[780px]">
+          <CardHeader
+            title={data.title}
+            subtitle={`Status: ${data.status}`}
+            right={
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={async () => {
+                  setActionError(null);
+                  try {
+                    const hash = getOrCreateAnonymousUserHash();
+                    await clientDelete(
+                      `/api/complaints/${encodeURIComponent(complaintId)}?anonymousUserHash=${encodeURIComponent(hash)}`
+                    );
+                    router.push("/complaints/my");
+                  } catch (e) {
+                    setActionError(e instanceof Error ? e.message : "Failed to delete");
+                  }
+                }}
+              >
+                Delete
+              </Button>
+            }
+          />
+
+          <div className="mt-4 grid gap-3 text-sm">
+            <div className="grid gap-1">
+              <div className="text-xs opacity-70">ID</div>
+              <div className="break-all">{data.id}</div>
             </div>
-          ) : null}
-        </div>
+            <div className="grid gap-1">
+              <div className="text-xs opacity-70">Description</div>
+              <div className="whitespace-pre-wrap">{data.description}</div>
+            </div>
+            <div className="grid gap-1">
+              <div className="text-xs opacity-70">Created</div>
+              <div>{new Date(data.createdAt).toLocaleString()}</div>
+            </div>
+            <div className="grid gap-1">
+              <div className="text-xs opacity-70">Updated</div>
+              <div>{new Date(data.updatedAt).toLocaleString()}</div>
+            </div>
+            {data.images?.length ? (
+              <div className="grid gap-1">
+                <div className="text-xs opacity-70">Images</div>
+                <ul className="grid gap-1">
+                  {data.images.map((u) => (
+                    <li key={u}>
+                      <a className="underline" href={u} target="_blank" rel="noreferrer">
+                        {u}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </div>
+        </Card>
       ) : null}
-    </main>
+    </Container>
   );
 }

@@ -5,6 +5,9 @@ import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { Container } from "@/components/Container";
+import { Button } from "@/components/ui/Button";
+import { Card, CardHeader } from "@/components/ui/Card";
+import { FieldLabel, Textarea } from "@/components/ui/Field";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 
 type FeedItem = {
@@ -162,114 +165,105 @@ export default function CommunityPostDetailPage() {
 
   if (loading) {
     return (
-      <main className="p-6">
-        <Container>
-          <p>{checking ? "Checking session…" : "Loading..."}</p>
-        </Container>
-      </main>
+      <Container>
+        <p className="text-sm opacity-70">{checking ? "Checking session…" : "Loading..."}</p>
+      </Container>
     );
   }
 
   return (
-    <main className="p-6">
-      <Container>
-        <p>
-          <Link href="/community">← Back to feed</Link>
-        </p>
+    <Container>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link href="/community" className="text-sm underline">
+          ← Back to feed
+        </Link>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" size="sm" onClick={() => void load()}>
+            Refresh
+          </Button>
+        </div>
+      </div>
 
-        {error ? (
-          <p style={{ color: "crimson" }}>
-            <strong>Error:</strong> {error}
-          </p>
-        ) : null}
+      {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
 
-        <h1>{postTitle}</h1>
+      <Card className="mt-4">
+        <CardHeader
+          title={<span className="break-words">{postTitle}</span>}
+          subtitle={post ? `${post.type} · ${new Date(post.createdAt).toLocaleString()}` : undefined}
+          right={
+            <Button size="sm" variant="secondary" onClick={() => void onToggleLike()}>
+              {liked ? "Unlike" : "Like"}
+            </Button>
+          }
+        />
 
         {post ? (
           <>
-            <div style={{ opacity: 0.75, fontSize: 13, marginTop: 4 }}>
-              {post.type} · {new Date(post.createdAt).toLocaleString()}
-            </div>
-            <p style={{ whiteSpace: "pre-wrap", marginTop: 10 }}>{post.content}</p>
+            <p className="mt-3 whitespace-pre-wrap text-sm">{post.content}</p>
 
             {post.mediaUrls && post.mediaUrls.length > 0 ? (
-              <section style={{ marginTop: 16 }}>
-                <h2>Media</h2>
-                <ul style={{ paddingLeft: 18 }}>
+              <div className="mt-4">
+                <div className="text-sm font-medium">Media</div>
+                <ul className="mt-2 grid gap-1 text-sm">
                   {post.mediaUrls.map((u) => (
                     <li key={u}>
-                      <a href={u} target="_blank" rel="noreferrer">
+                      <a className="underline" href={u} target="_blank" rel="noreferrer">
                         {firstLine(u, 120)}
                       </a>
                     </li>
                   ))}
                 </ul>
-              </section>
+              </div>
             ) : null}
           </>
         ) : (
-          <p style={{ opacity: 0.8 }}>
+          <p className="mt-3 text-sm opacity-70">
             Post header not found in feed. Comments below will still work.
           </p>
         )}
 
-        <div style={{ marginTop: 14, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-          <button type="button" onClick={onToggleLike}>
-            {liked ? "Unlike" : "Like"}
-          </button>
-        </div>
+        {actionError ? <p className="mt-3 text-sm text-red-700">{actionError}</p> : null}
+      </Card>
 
-        {actionError ? (
-          <p style={{ marginTop: 10, color: "crimson" }}>
-            {actionError}
-          </p>
-        ) : null}
+      <Card className="mt-4">
+        <CardHeader
+          title="Comments"
+          subtitle={comments.length === 0 ? "No comments yet." : `${comments.length} comment(s)`}
+        />
 
-        <section style={{ marginTop: 22 }}>
-          <h2>Comments</h2>
+        <ul className="mt-4 grid gap-3">
+          {comments.map((c) => (
+            <li key={c.id} className="rounded-lg border border-black/10 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-xs opacity-70">{new Date(c.createdAt).toLocaleString()}</div>
+                {meId && c.userId === meId ? (
+                  <Button size="sm" variant="danger" onClick={() => void onDeleteComment(c.id)}>
+                    Delete
+                  </Button>
+                ) : null}
+              </div>
+              <div className="mt-2 whitespace-pre-wrap text-sm">{c.comment}</div>
+            </li>
+          ))}
+        </ul>
 
-          {comments.length === 0 ? <p>No comments yet.</p> : null}
-
-          <ul style={{ paddingLeft: 0, listStyle: "none", marginTop: 12 }}>
-            {comments.map((c) => (
-              <li
-                key={c.id}
-                style={{
-                  marginBottom: 10,
-                  padding: 10,
-                  border: "1px solid rgba(0,0,0,0.08)",
-                  borderRadius: 10,
-                }}
-              >
-                <div style={{ display: "flex", gap: 10, justifyContent: "space-between", alignItems: "center" }}>
-                  <div style={{ opacity: 0.75, fontSize: 12 }}>
-                    {new Date(c.createdAt).toLocaleString()}
-                  </div>
-                  {meId && c.userId === meId ? (
-                    <button type="button" onClick={() => void onDeleteComment(c.id)}>
-                      Delete
-                    </button>
-                  ) : null}
-                </div>
-                <div style={{ whiteSpace: "pre-wrap", marginTop: 6 }}>{c.comment}</div>
-              </li>
-            ))}
-          </ul>
-
-          <form onSubmit={onAddComment} style={{ display: "grid", gap: 10, maxWidth: 720 }}>
-            <label style={{ display: "grid", gap: 6 }}>
-              <span>Add a comment</span>
-              <textarea
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                rows={3}
-                maxLength={1000}
-              />
-            </label>
-            <button type="submit">Comment</button>
-          </form>
-        </section>
-      </Container>
-    </main>
+        <form onSubmit={onAddComment} className="mt-4 grid gap-3 max-w-[720px]">
+          <FieldLabel label="Add a comment">
+            <Textarea
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              rows={3}
+              maxLength={1000}
+              className="min-h-[88px]"
+            />
+          </FieldLabel>
+          <div>
+            <Button type="submit" variant="primary">
+              Comment
+            </Button>
+          </div>
+        </form>
+      </Card>
+    </Container>
   );
 }

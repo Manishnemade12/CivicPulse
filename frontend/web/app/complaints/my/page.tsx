@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { Container } from "@/components/Container";
+import { Button } from "@/components/ui/Button";
+import { Card, CardHeader } from "@/components/ui/Card";
+
 import { getOrCreateAnonymousUserHash } from "../../../lib/anon";
 import { clientDelete, clientGet } from "../../../lib/clientApi";
 import { useRequireAuth } from "../../../lib/useRequireAuth";
@@ -58,58 +62,69 @@ export default function MyComplaintsPage() {
 
   if (checking) {
     return (
-      <main className="p-6">
-        <h1>My Complaints</h1>
-        <p>Checking session…</p>
-      </main>
+      <Container>
+        <h1 className="text-2xl font-semibold">My Complaints</h1>
+        <p className="mt-2 text-sm opacity-70">Checking session…</p>
+      </Container>
     );
   }
 
   return (
-    <main className="p-6">
-      <h1>My Complaints</h1>
+    <Container>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold">My Complaints</h1>
+        <Link href="/complaints/new" className="text-sm underline">
+          Raise new
+        </Link>
+      </div>
 
-      {loading ? <p>Loading…</p> : null}
-      {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
-      {actionError ? <p style={{ color: "crimson" }}>{actionError}</p> : null}
+      {loading ? <p className="mt-3 text-sm opacity-70">Loading…</p> : null}
+      {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
+      {actionError ? <p className="mt-3 text-sm text-red-700">{actionError}</p> : null}
 
-      {!loading && items.length === 0 ? <p>No complaints yet.</p> : null}
+      {!loading && items.length === 0 ? (
+        <Card className="mt-4">
+          <CardHeader title="No complaints" subtitle="You haven’t raised any complaints yet." />
+          <Link className="mt-3 inline-block text-sm underline" href="/complaints/new">
+            Raise your first complaint
+          </Link>
+        </Card>
+      ) : null}
 
-      <ul style={{ paddingLeft: 18 }}>
+      <div className="mt-4 grid gap-3">
         {items.map((c) => (
-          <li key={c.id} style={{ marginBottom: 10 }}>
-            <div style={{ fontWeight: 600 }}>
-              <Link href={`/complaints/my/${c.id}`}>{c.title}</Link>
-            </div>
-            <div style={{ opacity: 0.8, fontSize: 14 }}>
-              Status: {c.status} · Created: {new Date(c.createdAt).toLocaleString()}
-            </div>
-            <div style={{ marginTop: 8 }}>
-              <button
-                type="button"
-                onClick={async () => {
-                  setActionError(null);
-                  try {
-                    const hash = getOrCreateAnonymousUserHash();
-                    await clientDelete(
-                      `/api/complaints/${encodeURIComponent(c.id)}?anonymousUserHash=${encodeURIComponent(hash)}`
-                    );
-                    await load();
-                  } catch (e) {
-                    setActionError(e instanceof Error ? e.message : "Failed to delete");
-                  }
-                }}
-              >
-                Delete
-              </button>
-            </div>
-          </li>
+          <Card key={c.id}>
+            <CardHeader
+              title={
+                <Link className="underline" href={`/complaints/my/${c.id}`}>
+                  {c.title}
+                </Link>
+              }
+              subtitle={`Status: ${c.status} · Created: ${new Date(c.createdAt).toLocaleString()}`}
+              right={
+                <Button
+                  size="sm"
+                  variant="danger"
+                  onClick={async () => {
+                    setActionError(null);
+                    try {
+                      const hash = getOrCreateAnonymousUserHash();
+                      await clientDelete(
+                        `/api/complaints/${encodeURIComponent(c.id)}?anonymousUserHash=${encodeURIComponent(hash)}`
+                      );
+                      await load();
+                    } catch (e) {
+                      setActionError(e instanceof Error ? e.message : "Failed to delete");
+                    }
+                  }}
+                >
+                  Delete
+                </Button>
+              }
+            />
+          </Card>
         ))}
-      </ul>
-
-      <p>
-        <Link href="/complaints/new">Raise another complaint</Link>
-      </p>
-    </main>
+      </div>
+    </Container>
   );
 }

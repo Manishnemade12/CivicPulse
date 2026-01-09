@@ -4,6 +4,11 @@ import { useEffect, useState } from "react";
 
 import Link from "next/link";
 
+import { Container } from "@/components/Container";
+import { Button } from "@/components/ui/Button";
+import { Card, CardHeader } from "@/components/ui/Card";
+import { FieldLabel, Input } from "@/components/ui/Field";
+
 type MeResponse = { id: string; name: string; email: string; role: string };
 
 type AdminComplaint = {
@@ -113,60 +118,67 @@ export default function AdminComplaintsPage() {
   }
 
   return (
-    <main className="p-6">
-      <h1>Admin · Complaints</h1>
+    <Container>
+      <h1 className="text-2xl font-semibold">Admin · Complaints</h1>
 
-      <p style={{ opacity: 0.85 }}>
+      <p className="mt-2 text-sm opacity-70">
         This page requires an admin JWT. If you don&apos;t have one yet, use{" "}
-        <Link href="/login">Login</Link>.
+        <Link className="underline" href="/login">
+          Login
+        </Link>
+        .
       </p>
 
-      <label style={{ display: "grid", gap: 6, maxWidth: 320 }}>
-        <span>Filter by status</span>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-          <option value="">All</option>
-          {STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-      </label>
+      <Card className="mt-4">
+        <CardHeader
+          title="Filters"
+          subtitle={me ? `Signed in as ${me.email}` : undefined}
+        />
 
-      {loading ? <p>Loading…</p> : null}
-      {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
-      {success ? <p style={{ color: "green" }}>{success}</p> : null}
-
-      <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
-        {items.map((c) => (
-          <section
-            key={c.id}
-            style={{
-              border: "1px solid rgba(0,0,0,0.08)",
-              borderRadius: 8,
-              padding: 12,
-            }}
-          >
-            <div style={{ display: "grid", gap: 6 }}>
-              <div style={{ fontWeight: 700 }}>{c.title}</div>
-              <div style={{ opacity: 0.8, fontSize: 14 }}>
-                ID: {c.id} · Created: {new Date(c.createdAt).toLocaleString()}
-              </div>
-            </div>
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "160px 1fr 120px",
-                gap: 10,
-                alignItems: "end",
-                marginTop: 12,
-                maxWidth: 900,
-              }}
+        <div className="mt-4 grid gap-3 max-w-[420px]">
+          <FieldLabel label="Filter by status">
+            <select
+              className="h-10 w-full rounded-md border border-black/15 bg-white px-3 text-sm outline-none focus:border-black/30"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
             >
-              <label style={{ display: "grid", gap: 6 }}>
-                <span>Status</span>
+              <option value="">All</option>
+              {STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </FieldLabel>
+        </div>
+      </Card>
+
+      {loading ? <p className="mt-3 text-sm opacity-70">Loading…</p> : null}
+      {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
+      {success ? <p className="mt-3 text-sm text-green-700">{success}</p> : null}
+
+      <div className="mt-4 grid gap-3">
+        {items.map((c) => (
+          <Card key={c.id}>
+            <CardHeader
+              title={c.title}
+              subtitle={`ID: ${c.id} · Created: ${new Date(c.createdAt).toLocaleString()}`}
+              right={
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={() => void updateStatus(c.id)}
+                  disabled={submittingId === c.id}
+                >
+                  {submittingId === c.id ? "Saving…" : "Submit"}
+                </Button>
+              }
+            />
+
+            <div className="mt-4 grid gap-3 md:grid-cols-3 md:items-end">
+              <FieldLabel label="Status">
                 <select
+                  className="h-10 w-full rounded-md border border-black/15 bg-white px-3 text-sm outline-none focus:border-black/30"
                   value={draftStatusById[c.id] ?? c.status}
                   onChange={(e) =>
                     setDraftStatusById((prev) => ({ ...prev, [c.id]: e.target.value }))
@@ -178,27 +190,25 @@ export default function AdminComplaintsPage() {
                     </option>
                   ))}
                 </select>
-              </label>
+              </FieldLabel>
 
-              <label style={{ display: "grid", gap: 6 }}>
-                <span>Comment (optional)</span>
-                <input
+              <FieldLabel label="Comment (optional)">
+                <Input
                   value={commentById[c.id] ?? ""}
-                  onChange={(e) => setCommentById((prev) => ({ ...prev, [c.id]: e.target.value }))}
+                  onChange={(e) =>
+                    setCommentById((prev) => ({ ...prev, [c.id]: e.target.value }))
+                  }
                   maxLength={500}
                 />
-              </label>
+              </FieldLabel>
 
-              <button
-                onClick={() => void updateStatus(c.id)}
-                disabled={submittingId === c.id}
-              >
-                {submittingId === c.id ? "Saving…" : "Submit"}
-              </button>
+              <div className="text-xs opacity-70">
+                Current status: <span className="font-medium">{c.status}</span>
+              </div>
             </div>
-          </section>
+          </Card>
         ))}
       </div>
-    </main>
+    </Container>
   );
 }

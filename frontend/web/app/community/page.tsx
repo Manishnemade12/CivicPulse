@@ -2,6 +2,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 
 import { Container } from "@/components/Container";
+import { Card, CardHeader } from "@/components/ui/Card";
 import { requireServerAuth } from "@/lib/serverAuth";
 
 type FeedItem = {
@@ -36,41 +37,37 @@ export default async function CommunityPage() {
   const feed = await getFeed();
 
   return (
-    <main className="py-6">
-      <Container>
-        <h1>Community</h1>
+    <Container>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold">Community</h1>
+        <Link
+          href="/community/new"
+          className="inline-flex h-10 items-center justify-center rounded-md border border-black/15 bg-black px-4 text-sm font-medium text-white hover:bg-black/90"
+        >
+          Create post
+        </Link>
+      </div>
 
-        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-          <Link href="/community/new">Create post</Link>
-        </div>
+      {feed.length === 0 ? <p className="mt-4 text-sm opacity-70">No posts yet.</p> : null}
 
-        {feed.length === 0 ? <p>No posts yet.</p> : null}
-
-        <ul style={{ listStyle: "none", paddingLeft: 0, marginTop: 16 }}>
-          {feed.map((p) => (
-            <li
-              key={p.id}
-              style={{
-                marginBottom: 14,
-                padding: 12,
-                border: "1px solid rgba(0,0,0,0.08)",
-                borderRadius: 10,
-              }}
-            >
-              <div style={{ fontWeight: 700, fontSize: 16 }}>
-                <Link href={`/community/${p.id}`}>{p.title ?? "(untitled)"}</Link>
-              </div>
-
-              <div style={{ opacity: 0.75, fontSize: 13, marginTop: 4 }}>
-                {p.type} · {new Date(p.createdAt).toLocaleString()}
-                {p.mediaUrls && p.mediaUrls.length > 0 ? ` · media: ${p.mediaUrls.length}` : ""}
-              </div>
-
-              <div style={{ marginTop: 8, opacity: 0.9 }}>{excerpt(p.content)}</div>
-            </li>
-          ))}
-        </ul>
-      </Container>
-    </main>
+      <div className="mt-4 grid gap-3">
+        {feed.map((p) => (
+          <Card key={p.id} className="p-0">
+            <div className="p-4">
+              <CardHeader
+                title={<Link className="underline" href={`/community/${p.id}`}>{p.title ?? "(untitled)"}</Link>}
+                subtitle={
+                  <>
+                    {p.type} · {new Date(p.createdAt).toLocaleString()}
+                    {p.mediaUrls && p.mediaUrls.length > 0 ? ` · media: ${p.mediaUrls.length}` : ""}
+                  </>
+                }
+              />
+              <p className="mt-3 text-sm opacity-90">{excerpt(p.content)}</p>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </Container>
   );
 }

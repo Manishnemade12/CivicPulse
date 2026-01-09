@@ -4,6 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
 
+import { Container } from "@/components/Container";
+import { Button } from "@/components/ui/Button";
+import { Card, CardHeader } from "@/components/ui/Card";
+import { FieldLabel, Input, Textarea } from "@/components/ui/Field";
+
 import { getOrCreateAnonymousUserHash } from "../../../lib/anon";
 import { clientGet, clientPost } from "../../../lib/clientApi";
 import { useRequireAuth } from "../../../lib/useRequireAuth";
@@ -72,10 +77,10 @@ export default function NewComplaintPage() {
 
   if (checking) {
     return (
-      <main className="p-6">
-        <h1>Raise Complaint</h1>
-        <p>Checking session…</p>
-      </main>
+      <Container>
+        <h1 className="text-2xl font-semibold">Raise Complaint</h1>
+        <p className="mt-2 text-sm opacity-70">Checking session…</p>
+      </Container>
     );
   }
 
@@ -106,63 +111,87 @@ export default function NewComplaintPage() {
   }
 
   return (
-    <main className="p-6">
-      <h1>Raise Complaint</h1>
+    <Container>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold">Raise Complaint</h1>
+        <Link href="/complaints/my" className="text-sm underline">
+          My complaints
+        </Link>
+      </div>
 
-      {loading ? <p>Loading…</p> : null}
-      {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
+      {loading ? <p className="mt-3 text-sm opacity-70">Loading…</p> : null}
+      {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
 
-      <form onSubmit={onSubmit} style={{ display: "grid", gap: 12, maxWidth: 640 }}>
-        <label style={{ display: "grid", gap: 6 }}>
-          <span>Area</span>
-          <select value={areaId} onChange={(e) => setAreaId(e.target.value)} disabled={loading}>
-            {areas.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.city}
-                {a.zone ? ` · ${a.zone}` : ""}
-                {a.ward ? ` · ${a.ward}` : ""}
-              </option>
-            ))}
-          </select>
-        </label>
+      <Card className="mt-4">
+        <CardHeader title="Details" subtitle="Provide accurate info to help resolve faster." />
 
-        <label style={{ display: "grid", gap: 6 }}>
-          <span>Category</span>
-          <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} disabled={loading}>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <form onSubmit={onSubmit} className="mt-4 grid gap-4 max-w-[640px]">
+          <FieldLabel label="Area">
+            <select
+              className="h-10 w-full rounded-md border border-black/15 bg-white px-3 text-sm outline-none focus:border-black/30 disabled:opacity-60"
+              value={areaId}
+              onChange={(e) => setAreaId(e.target.value)}
+              disabled={loading}
+            >
+              {areas.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.city}
+                  {a.zone ? ` · ${a.zone}` : ""}
+                  {a.ward ? ` · ${a.ward}` : ""}
+                </option>
+              ))}
+            </select>
+          </FieldLabel>
 
-        <label style={{ display: "grid", gap: 6 }}>
-          <span>Title</span>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} required />
-        </label>
+          <FieldLabel label="Category">
+            <select
+              className="h-10 w-full rounded-md border border-black/15 bg-white px-3 text-sm outline-none focus:border-black/30 disabled:opacity-60"
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              disabled={loading}
+            >
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </FieldLabel>
 
-        <label style={{ display: "grid", gap: 6 }}>
-          <span>Description</span>
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} required rows={5} />
-        </label>
+          <FieldLabel label="Title">
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} required />
+          </FieldLabel>
 
-        <label style={{ display: "grid", gap: 6 }}>
-          <span>Images (comma-separated URLs, optional)</span>
-          <input value={imagesCsv} onChange={(e) => setImagesCsv(e.target.value)} />
-        </label>
+          <FieldLabel label="Description">
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              required
+              rows={5}
+              className="min-h-[140px]"
+            />
+          </FieldLabel>
 
-        <button type="submit" disabled={submitting || loading}>
-          {submitting ? "Submitting…" : "Submit"}
-        </button>
-      </form>
+          <FieldLabel label="Images (comma-separated URLs, optional)">
+            <Input value={imagesCsv} onChange={(e) => setImagesCsv(e.target.value)} />
+          </FieldLabel>
 
-      {createdId ? (
-        <p>
-          Created complaint: <strong>{createdId}</strong> ·{" "}
-          <Link href="/complaints/my">View my complaints</Link>
-        </p>
-      ) : null}
-    </main>
+          <div className="flex items-center gap-2">
+            <Button type="submit" variant="primary" disabled={submitting || loading}>
+              {submitting ? "Submitting…" : "Submit"}
+            </Button>
+          </div>
+        </form>
+
+        {createdId ? (
+          <p className="mt-4 text-sm">
+            Created complaint: <span className="font-semibold">{createdId}</span> ·{" "}
+            <Link href="/complaints/my" className="underline">
+              View my complaints
+            </Link>
+          </p>
+        ) : null}
+      </Card>
+    </Container>
   );
 }

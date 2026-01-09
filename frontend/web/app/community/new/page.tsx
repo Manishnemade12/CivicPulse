@@ -1,7 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+
+import { Container } from "@/components/Container";
+import { Button } from "@/components/ui/Button";
+import { Card, CardHeader } from "@/components/ui/Card";
+import { FieldLabel, Input, Textarea } from "@/components/ui/Field";
 
 import { useRequireAuth } from "../../../lib/useRequireAuth";
 
@@ -33,10 +39,10 @@ export default function CommunityNewPostPage() {
 
   if (checking) {
     return (
-      <main className="p-6">
-        <h1>Create Post</h1>
-        <p>Checking session…</p>
-      </main>
+      <Container>
+        <h1 className="text-2xl font-semibold">Create Post</h1>
+        <p className="mt-2 text-sm opacity-70">Checking session…</p>
+      </Container>
     );
   }
 
@@ -79,51 +85,59 @@ export default function CommunityNewPostPage() {
   }
 
   return (
-    <main className="p-6">
-      <h1>Create Post</h1>
+    <Container>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold">Create Post</h1>
+        <Link href="/community" className="text-sm underline">
+          Back
+        </Link>
+      </div>
 
-      {error ? (
-        <p style={{ color: "crimson" }}>
-          <strong>Error:</strong> {error}
-        </p>
-      ) : null}
+      {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
 
-      <form onSubmit={onSubmit} style={{ display: "grid", gap: 12, maxWidth: 720 }}>
-        <label style={{ display: "grid", gap: 6 }}>
-          <span>Title (optional)</span>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Road repair completed"
-            maxLength={200}
-          />
-        </label>
+      <Card className="mt-4">
+        <CardHeader
+          title="Post details"
+          subtitle="Keep it clear and respectful."
+        />
 
-        <label style={{ display: "grid", gap: 6 }}>
-          <span>Content</span>
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Write your post..."
-            rows={6}
-            maxLength={5000}
-          />
-        </label>
+        <form onSubmit={onSubmit} className="mt-4 grid gap-4 max-w-[720px]">
+          <FieldLabel label="Title (optional)">
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Road repair completed"
+              maxLength={200}
+            />
+          </FieldLabel>
 
-        <label style={{ display: "grid", gap: 6 }}>
-          <span>Media URLs (optional, one per line)</span>
-          <textarea
-            value={mediaUrlsText}
-            onChange={(e) => setMediaUrlsText(e.target.value)}
-            placeholder="https://..."
-            rows={4}
-          />
-        </label>
+          <FieldLabel label="Content">
+            <Textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Write your post..."
+              rows={6}
+              maxLength={5000}
+              className="min-h-[160px]"
+            />
+          </FieldLabel>
 
-        <button type="submit" disabled={submitting}>
-          {submitting ? "Posting..." : "Post"}
-        </button>
-      </form>
-    </main>
+          <FieldLabel label="Media URLs (optional, one per line)">
+            <Textarea
+              value={mediaUrlsText}
+              onChange={(e) => setMediaUrlsText(e.target.value)}
+              placeholder="https://..."
+              rows={4}
+            />
+          </FieldLabel>
+
+          <div className="flex items-center gap-2">
+            <Button type="submit" variant="primary" disabled={submitting}>
+              {submitting ? "Posting…" : "Post"}
+            </Button>
+          </div>
+        </form>
+      </Card>
+    </Container>
   );
 }
