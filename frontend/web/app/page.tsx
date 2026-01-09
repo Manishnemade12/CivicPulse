@@ -7,9 +7,19 @@ type VersionResponse = {
   version?: string;
 };
 
+async function getOrigin(): Promise<string | null> {
+  const h = await import("next/headers").then((m) => m.headers());
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  if (!host) return null;
+  const proto = h.get("x-forwarded-proto") ?? "http";
+  return `${proto}://${host}`;
+}
+
 async function getHealth(): Promise<HealthResponse> {
   try {
-    const res = await fetch("/actuator/health", { cache: "no-store" });
+    const origin = await getOrigin();
+    if (!origin) return { status: "unknown" };
+    const res = await fetch(`${origin}/actuator/health`, { cache: "no-store" });
     if (!res.ok) return { status: `HTTP ${res.status}` };
     return (await res.json()) as HealthResponse;
   } catch {
@@ -19,7 +29,9 @@ async function getHealth(): Promise<HealthResponse> {
 
 async function getVersion(): Promise<VersionResponse> {
   try {
-    const res = await fetch("/api/version", { cache: "no-store" });
+    const origin = await getOrigin();
+    if (!origin) return { version: "unknown" };
+    const res = await fetch(`${origin}/api/version`, { cache: "no-store" });
     if (!res.ok) return { version: `HTTP ${res.status}` };
     return (await res.json()) as VersionResponse;
   } catch {

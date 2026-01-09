@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 
 type FeedItem = {
   id: string;
@@ -10,7 +11,13 @@ type FeedItem = {
 };
 
 async function getFeed(): Promise<FeedItem[]> {
-  const res = await fetch("/api/community/feed", { cache: "no-store" });
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? "http";
+  if (!host) return [];
+
+  const url = `${proto}://${host}/api/community/feed`;
+  const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) return [];
   return (await res.json()) as FeedItem[];
 }
