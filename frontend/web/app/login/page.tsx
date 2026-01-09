@@ -45,40 +45,49 @@ export default function LoginPage() {
   }
 
   return (
-    <main>
-      <h1>Login</h1>
+    <main className="min-h-screen px-6 py-10">
+      <div className="mx-auto w-full max-w-md rounded-xl border border-black/10 bg-white p-6">
+        <h1 className="text-2xl font-semibold">Login</h1>
+        <p className="mt-1 text-sm opacity-70">Sign in to continue.</p>
 
-      <form onSubmit={onSubmit} style={{ display: "grid", gap: 12, maxWidth: 420 }}>
-        <label style={{ display: "grid", gap: 6 }}>
-          <span>Email</span>
-          <input value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </label>
+        <form onSubmit={onSubmit} className="mt-6 grid gap-4">
+          <label className="grid gap-1.5">
+            <span className="text-sm font-medium">Email</span>
+            <input
+              className="h-10 rounded-md border border-black/15 px-3"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </label>
 
-        <label style={{ display: "grid", gap: 6 }}>
-          <span>Password</span>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </label>
+          <label className="grid gap-1.5">
+            <span className="text-sm font-medium">Password</span>
+            <input
+              className="h-10 rounded-md border border-black/15 px-3"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </label>
 
-        <button type="submit" disabled={loading}>
-          {loading ? "Logging in…" : "Login"}
-        </button>
-      </form>
+          <button
+            type="submit"
+            disabled={loading}
+            className="h-10 rounded-md border border-black/15 bg-black px-4 text-white disabled:opacity-60"
+          >
+            {loading ? "Logging in…" : "Login"}
+          </button>
+        </form>
 
-      {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
-      {ok ? (
-        <p style={{ color: "green" }}>
-          Logged in. Redirecting…
+        {error ? <p className="mt-4 text-sm text-red-700">{error}</p> : null}
+        {ok ? <p className="mt-4 text-sm text-green-700">Logged in. Redirecting…</p> : null}
+
+        <p className="mt-6 text-sm">
+          Don&apos;t have an account? <Link className="underline" href="/register">Register</Link>
         </p>
-      ) : null}
-
-      <p>
-        Don&apos;t have an account? <Link href="/register">Register</Link>
-      </p>
+      </div>
     </main>
   );
 }

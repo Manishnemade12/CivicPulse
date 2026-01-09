@@ -38,23 +38,11 @@ export function AppHeader() {
   }
 
   return (
-    <header
-      style={{
-        borderBottom: "1px solid rgba(0,0,0,0.08)",
-        padding: "12px 0",
-      }}
-    >
+    <header className="border-b border-black/10 py-3">
       <Container>
-        <nav
-          style={{
-            display: "flex",
-            gap: 16,
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <Link href="/" style={{ fontWeight: 700 }}>
+        <nav className="flex items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Link href="/" className="font-semibold">
               CivicPulse
             </Link>
             <Link href="/complaints/new">Raise Complaint</Link>
@@ -63,7 +51,7 @@ export function AppHeader() {
             <Link href="/admin/complaints">Admin</Link>
           </div>
 
-          <div style={{ display: "flex", gap: 12 }}>
+          <div className="flex items-center gap-3">
             {authChecked && authed ? (
               <LogoutButton />
             ) : (

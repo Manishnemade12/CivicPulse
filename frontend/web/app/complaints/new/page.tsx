@@ -72,7 +72,7 @@ export default function NewComplaintPage() {
 
   if (checking) {
     return (
-      <main>
+      <main style={{ padding: 24 }}>
         <h1>Raise Complaint</h1>
         <p>Checking session…</p>
       </main>
@@ -106,7 +106,7 @@ export default function NewComplaintPage() {
   }
 
   return (
-    <main>
+    <main style={{ padding: 24 }}>
       <h1>Raise Complaint</h1>
 
       {loading ? <p>Loading…</p> : null}

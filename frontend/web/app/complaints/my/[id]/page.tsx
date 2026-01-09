@@ -51,7 +51,7 @@ export default function ComplaintDetailPage({ params }: { params: { id: string }
 
   if (checking) {
     return (
-      <main>
+      <main style={{ padding: 24 }}>
         <h1>Complaint Detail</h1>
         <p>Checking session…</p>
       </main>
@@ -59,7 +59,7 @@ export default function ComplaintDetailPage({ params }: { params: { id: string }
   }
 
   return (
-    <main>
+    <main style={{ padding: 24 }}>
       <h1>Complaint Detail</h1>
 
       {loading ? <p>Loading…</p> : null}

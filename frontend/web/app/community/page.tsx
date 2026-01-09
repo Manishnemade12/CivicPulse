@@ -36,7 +36,7 @@ export default async function CommunityPage() {
   const feed = await getFeed();
 
   return (
-    <main>
+    <main className="py-6">
       <Container>
         <h1>Community</h1>
 
