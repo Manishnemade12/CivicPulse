@@ -3,6 +3,7 @@ package com.zosh.feature.reference;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -24,7 +25,7 @@ public class ReferenceController {
 
 	@GetMapping("/api/areas")
 	public List<AreaDto> listAreas() {
-		return areaRepository.findAll().stream()
+		return areaRepository.findAll(Sort.by("city").ascending().and(Sort.by("zone").ascending()).and(Sort.by("ward").ascending())).stream()
 				.map(a -> new AreaDto(a.getId(), a.getCity(), a.getZone(), a.getWard()))
 				.toList();
 	}
@@ -33,7 +34,7 @@ public class ReferenceController {
 
 	@GetMapping("/api/complaint-categories")
 	public List<ComplaintCategoryDto> listCategories() {
-		return complaintCategoryRepository.findAll().stream()
+		return complaintCategoryRepository.findAll(Sort.by("name").ascending()).stream()
 				.map(c -> new ComplaintCategoryDto(c.getId(), c.getName()))
 				.toList();
 	}

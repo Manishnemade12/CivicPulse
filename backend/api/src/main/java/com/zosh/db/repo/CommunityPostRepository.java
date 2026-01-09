@@ -6,7 +6,9 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.zosh.db.entity.CommunityPostEntity;
+import com.zosh.db.enums.CommunityPostType;
 
 public interface CommunityPostRepository extends JpaRepository<CommunityPostEntity, UUID> {
 	List<CommunityPostEntity> findTop50ByOrderByCreatedAtDesc();
+	boolean existsByTypeAndTitle(CommunityPostType type, String title);
 }

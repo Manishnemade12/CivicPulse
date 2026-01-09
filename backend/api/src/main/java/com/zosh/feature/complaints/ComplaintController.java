@@ -47,7 +47,7 @@ public class ComplaintController {
 	public record CreateComplaintRequest(
 			@NotNull UUID areaId,
 			@NotNull UUID categoryId,
-			@NotBlank @Size(max = 255) String anonymousUserHash,
+			@NotBlank @Size(min = 10, max = 255) String anonymousUserHash,
 			@NotBlank @Size(max = 200) String title,
 			@NotBlank String description,
 			List<@Size(max = 2048) String> images
@@ -74,12 +74,26 @@ public class ComplaintController {
 		return new CreateComplaintResponse(saved.getId());
 	}
 
-	public record ComplaintSummaryDto(UUID id, String title, String status, Instant createdAt) {}
+	public record ComplaintSummaryDto(
+			UUID id,
+			String title,
+			String status,
+			Instant createdAt,
+			Instant updatedAt
+	) {}
 
 	@GetMapping("/api/complaints/my")
-	public List<ComplaintSummaryDto> myComplaints(@RequestParam @NotBlank String anonymousUserHash) {
+	public List<ComplaintSummaryDto> myComplaints(
+			@RequestParam @NotBlank @Size(min = 10, max = 255) String anonymousUserHash
+	) {
 		return complaintRepository.findByAnonymousUserHashOrderByCreatedAtDesc(anonymousUserHash).stream()
-				.map(c -> new ComplaintSummaryDto(c.getId(), c.getTitle(), c.getStatus().name(), c.getCreatedAt()))
+				.map(c -> new ComplaintSummaryDto(
+						c.getId(),
+						c.getTitle(),
+						c.getStatus().name(),
+						c.getCreatedAt(),
+						c.getUpdatedAt()
+				))
 				.toList();
 	}
 
@@ -96,7 +110,7 @@ public class ComplaintController {
 	@GetMapping("/api/complaints/{id}")
 	public ComplaintDetailDto complaintDetail(
 			@PathVariable UUID id,
-			@RequestParam @NotBlank String anonymousUserHash
+			@RequestParam @NotBlank @Size(min = 10, max = 255) String anonymousUserHash
 	) {
 		ComplaintEntity c = complaintRepository.findByIdAndAnonymousUserHash(id, anonymousUserHash)
 				.orElseThrow(() -> new NotFoundException("Complaint not found"));

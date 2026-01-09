@@ -11,7 +11,8 @@ insert into areas(city, zone, ward)
 values
   ('YourCity', 'Zone-1', 'Ward-1'),
   ('YourCity', 'Zone-2', 'Ward-2'),
-  ('YourCity', 'Zone-3', 'Ward-3');
+  ('YourCity', 'Zone-3', 'Ward-3')
+on conflict do nothing;
 
 -- Optional users
 -- Prefer creating users through the backend once auth is implemented,

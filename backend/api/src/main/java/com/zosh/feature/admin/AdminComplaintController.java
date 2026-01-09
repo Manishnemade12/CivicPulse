@@ -1,5 +1,6 @@
 package com.zosh.feature.admin;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.zosh.common.exception.NotFoundException;
@@ -26,6 +28,9 @@ import com.zosh.db.repo.UserRepository;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
+import org.springframework.transaction.annotation.Transactional;
 
 @RestController
 public class AdminComplaintController {
@@ -47,25 +52,58 @@ public class AdminComplaintController {
 		this.userRepository = userRepository;
 	}
 
-	public record AdminComplaintSummaryDto(UUID id, String title, String status, UUID areaId, UUID categoryId) {}
+	public record AdminComplaintSummaryDto(
+			UUID id,
+			String title,
+			String status,
+			UUID areaId,
+			UUID categoryId,
+			Instant createdAt
+	) {}
 
 	@GetMapping("/api/admin/complaints")
-	public List<AdminComplaintSummaryDto> listComplaints() {
-		return complaintRepository.findAll().stream()
+	public List<AdminComplaintSummaryDto> listComplaints(
+			@RequestParam(required = false) String status,
+			@RequestParam(required = false) UUID areaId
+	) {
+		List<ComplaintEntity> complaints;
+
+		ComplaintStatus parsedStatus = null;
+		if (status != null && !status.isBlank()) {
+			try {
+				parsedStatus = ComplaintStatus.valueOf(status);
+			} catch (Exception e) {
+				throw new IllegalArgumentException("Invalid status");
+			}
+		}
+
+		if (parsedStatus != null && areaId != null) {
+			complaints = complaintRepository.findByStatusAndArea_IdOrderByCreatedAtDesc(parsedStatus, areaId);
+		} else if (parsedStatus != null) {
+			complaints = complaintRepository.findByStatusOrderByCreatedAtDesc(parsedStatus);
+		} else if (areaId != null) {
+			complaints = complaintRepository.findByArea_IdOrderByCreatedAtDesc(areaId);
+		} else {
+			complaints = complaintRepository.findAllByOrderByCreatedAtDesc();
+		}
+
+		return complaints.stream()
 				.map(c -> new AdminComplaintSummaryDto(
 						c.getId(),
 						c.getTitle(),
 						c.getStatus().name(),
 						c.getArea().getId(),
-						c.getCategory().getId()
+						c.getCategory().getId(),
+						c.getCreatedAt()
 				))
 				.toList();
 	}
 
-	public record UpdateStatusRequest(@NotBlank String status, String comment) {}
+	public record UpdateStatusRequest(@NotBlank String status, @Size(max = 500) String comment) {}
 	public record UpdateStatusResponse(boolean ok) {}
 
 	@PostMapping("/api/admin/complaints/{id}/status")
+	@Transactional
 	public UpdateStatusResponse updateStatus(
 			@PathVariable UUID id,
 			@Valid @RequestBody UpdateStatusRequest req,
@@ -85,6 +123,7 @@ public class AdminComplaintController {
 			throw new IllegalArgumentException("Invalid status");
 		}
 
+		ComplaintStatus previousStatus = complaint.getStatus();
 		complaint.setStatus(newStatus);
 		complaintRepository.save(complaint);
 
@@ -95,14 +134,28 @@ public class AdminComplaintController {
 		action.setComment(req.comment());
 		complaintActionRepository.save(action);
 
-		if (newStatus == ComplaintStatus.RESOLVED) {
-			CommunityPostEntity post = new CommunityPostEntity();
-			post.setType(CommunityPostType.RESOLVED_COMPLAINT);
-			post.setTitle("Resolved: " + complaint.getTitle());
-			post.setContent("A complaint was resolved by the admin team.");
-			post.setMediaUrls(null);
-			post.setUser(null);
-			communityPostRepository.save(post);
+		// Auto-post on transition to RESOLVED. Also de-dupe by embedding complaint id in title.
+		if (previousStatus != ComplaintStatus.RESOLVED && newStatus == ComplaintStatus.RESOLVED) {
+			String suffix = ": " + complaint.getTitle();
+			String prefix = "Resolved [" + complaint.getId() + "]";
+			String title = prefix + suffix;
+			if (title.length() > 200) {
+				title = title.substring(0, 200);
+			}
+
+			if (!communityPostRepository.existsByTypeAndTitle(CommunityPostType.RESOLVED_COMPLAINT, title)) {
+				CommunityPostEntity post = new CommunityPostEntity();
+				post.setType(CommunityPostType.RESOLVED_COMPLAINT);
+				post.setTitle(title);
+				String comment = req.comment() == null ? "" : req.comment().trim();
+				String content = "Complaint resolved.\n\n"
+						+ "ComplaintId: " + complaint.getId() + "\n"
+						+ (comment.isBlank() ? "" : ("Resolution note: " + comment + "\n"));
+				post.setContent(content);
+				post.setMediaUrls(null);
+				post.setUser(null);
+				communityPostRepository.save(post);
+			}
 		}
 
 		return new UpdateStatusResponse(true);
