@@ -1,6 +1,8 @@
 package com.zosh.feature.community;
 
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -48,18 +50,25 @@ public class CommunityController {
 		this.userRepository = userRepository;
 	}
 
-	public record FeedItemDto(UUID id, String type, String title, String content, Instant createdAt) {}
+	public record FeedItemDto(UUID id, String type, String title, String content, List<String> mediaUrls, Instant createdAt) {}
 
 	@GetMapping("/api/community/feed")
 	public List<FeedItemDto> feed() {
 		return communityPostRepository.findTop50ByOrderByCreatedAtDesc().stream()
-				.map(p -> new FeedItemDto(p.getId(), p.getType().name(), p.getTitle(), p.getContent(), p.getCreatedAt()))
+				.map(p -> new FeedItemDto(
+						p.getId(),
+						p.getType().name(),
+						p.getTitle(),
+						p.getContent(),
+						p.getMediaUrls() == null ? Collections.emptyList() : Arrays.asList(p.getMediaUrls()),
+						p.getCreatedAt()
+				))
 				.toList();
 	}
 
 	public record CreatePostRequest(
 			@Size(max = 200) String title,
-			@NotBlank String content,
+			@NotBlank @Size(max = 5000) String content,
 			List<@Size(max = 2048) String> mediaUrls
 	) {}
 	public record CreatePostResponse(UUID id) {}
@@ -93,7 +102,7 @@ public class CommunityController {
 				.toList();
 	}
 
-	public record CreateCommentRequest(@NotBlank String comment) {}
+	public record CreateCommentRequest(@NotBlank @Size(max = 1000) String comment) {}
 	public record CreateCommentResponse(UUID id) {}
 
 	@PostMapping("/api/community/posts/{id}/comments")

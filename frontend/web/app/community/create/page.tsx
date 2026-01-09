@@ -1,8 +1,5 @@
-export default function CreatePostPage() {
-  return (
-    <main>
-      <h1>Create Post</h1>
-      <p>Scaffolded create post page.</p>
-    </main>
-  );
+import { redirect } from "next/navigation";
+
+export default function CommunityCreateRedirectPage() {
+  redirect("/community/new");
 }

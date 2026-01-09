@@ -5,6 +5,7 @@ type FeedItem = {
   type: string;
   title: string | null;
   content: string;
+  mediaUrls?: string[];
   createdAt: string;
 };
 
