@@ -8,7 +8,8 @@ type VersionResponse = {
 };
 
 async function getOrigin(): Promise<string | null> {
-  const h = await import("next/headers").then((m) => m.headers());
+  const { headers } = await import("next/headers");
+  const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host");
   if (!host) return null;
   const proto = h.get("x-forwarded-proto") ?? "http";

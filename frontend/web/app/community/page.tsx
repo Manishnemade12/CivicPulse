@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 
+import { Container } from "@/components/Container";
+
 type FeedItem = {
   id: string;
   type: string;
@@ -22,30 +24,53 @@ async function getFeed(): Promise<FeedItem[]> {
   return (await res.json()) as FeedItem[];
 }
 
+function excerpt(text: string, max = 140): string {
+  const t = text.trim().replace(/\s+/g, " ");
+  if (t.length <= max) return t;
+  return `${t.slice(0, max)}…`;
+}
+
 export default async function CommunityPage() {
   const feed = await getFeed();
 
   return (
     <main>
-      <h1>Community</h1>
-      <p>
-        <Link href="/community/new">Create post</Link>
-      </p>
+      <Container>
+        <h1>Community</h1>
 
-      {feed.length === 0 ? <p>No posts yet.</p> : null}
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <Link href="/community/new">Create post</Link>
+          <span style={{ opacity: 0.7 }}>·</span>
+          <Link href="/login">Login</Link>
+        </div>
 
-      <ul style={{ paddingLeft: 18 }}>
-        {feed.map((p) => (
-          <li key={p.id} style={{ marginBottom: 12 }}>
-            <div style={{ fontWeight: 700 }}>
-              <Link href={`/community/${p.id}`}>{p.title ?? "(untitled)"}</Link>
-            </div>
-            <div style={{ opacity: 0.8, fontSize: 14 }}>
-              {p.type} · {new Date(p.createdAt).toLocaleString()}
-            </div>
-          </li>
-        ))}
-      </ul>
+        {feed.length === 0 ? <p>No posts yet.</p> : null}
+
+        <ul style={{ listStyle: "none", paddingLeft: 0, marginTop: 16 }}>
+          {feed.map((p) => (
+            <li
+              key={p.id}
+              style={{
+                marginBottom: 14,
+                padding: 12,
+                border: "1px solid rgba(0,0,0,0.08)",
+                borderRadius: 10,
+              }}
+            >
+              <div style={{ fontWeight: 700, fontSize: 16 }}>
+                <Link href={`/community/${p.id}`}>{p.title ?? "(untitled)"}</Link>
+              </div>
+
+              <div style={{ opacity: 0.75, fontSize: 13, marginTop: 4 }}>
+                {p.type} · {new Date(p.createdAt).toLocaleString()}
+                {p.mediaUrls && p.mediaUrls.length > 0 ? ` · media: ${p.mediaUrls.length}` : ""}
+              </div>
+
+              <div style={{ marginTop: 8, opacity: 0.9 }}>{excerpt(p.content)}</div>
+            </li>
+          ))}
+        </ul>
+      </Container>
     </main>
   );
 }
