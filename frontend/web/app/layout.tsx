@@ -1,7 +1,4 @@
 import type { ReactNode } from "react";
-
-import { AppShell } from "../components/AppShell";
-
 import "./globals.css";
 
 export default function RootLayout({
@@ -11,8 +8,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-white text-black">
-        <AppShell>{children}</AppShell>
+      <body className="min-h-screen bg-gray-50 text-black">
+        {children}
       </body>
     </html>
   );

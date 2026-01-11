@@ -52,7 +52,7 @@ public class CommunityController {
 		this.userRepository = userRepository;
 	}
 
-	public record FeedItemDto(UUID id, String type, String title, String content, List<String> mediaUrls, Instant createdAt) {}
+	public record FeedItemDto(UUID id, String type, String title, String content, List<String> mediaUrls, Instant createdAt, String authorName, UUID authorId) {}
 	public record MyPostDto(UUID id, String type, String title, String content, List<String> mediaUrls, Instant createdAt) {}
 
 	@GetMapping("/api/community/feed")
@@ -64,7 +64,11 @@ public class CommunityController {
 						p.getTitle(),
 						p.getContent(),
 						p.getMediaUrls() == null ? Collections.emptyList() : Arrays.asList(p.getMediaUrls()),
-						p.getCreatedAt()
+						p.getCreatedAt(),
+
+						//can remove
+						p.getUser() != null ? p.getUser().getName() : "Anonymous User",
+						p.getUser() != null ? p.getUser().getId() : null
 				))
 				.toList();
 	}

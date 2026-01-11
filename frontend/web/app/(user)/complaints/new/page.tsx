@@ -9,9 +9,9 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { FieldLabel, Input, Textarea } from "@/components/ui/Field";
 
-import { getOrCreateAnonymousUserHash } from "../../../lib/anon";
-import { clientGet, clientPost } from "../../../lib/clientApi";
-import { useRequireAuth } from "../../../lib/useRequireAuth";
+import { getOrCreateAnonymousUserHash } from "@/lib/anon";
+import { clientGet, clientPost } from "@/lib/clientApi";
+import { useRequireAuth } from "@/lib/useRequireAuth";
 
 type AreaDto = { id: string; city: string; zone: string | null; ward: string | null };
 type CategoryDto = { id: string; name: string };

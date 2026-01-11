@@ -8,9 +8,9 @@ import { Container } from "@/components/Container";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 
-import { getOrCreateAnonymousUserHash } from "../../../../lib/anon";
-import { clientDelete, clientGet } from "../../../../lib/clientApi";
-import { useRequireAuth } from "../../../../lib/useRequireAuth";
+import { getOrCreateAnonymousUserHash } from "@/lib/anon";
+import { clientDelete, clientGet } from "@/lib/clientApi";
+import { useRequireAuth } from "@/lib/useRequireAuth";
 
 type ComplaintDetail = {
   id: string;
