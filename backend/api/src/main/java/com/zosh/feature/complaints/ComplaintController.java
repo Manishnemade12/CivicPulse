@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import com.zosh.feature.admin.AdminComplaintController;
 
 import com.zosh.common.exception.NotFoundException;
 import com.zosh.db.entity.AreaEntity;
@@ -102,6 +103,31 @@ public class ComplaintController {
 				.toList();
 	}
 
+	@org.springframework.transaction.annotation.Transactional(readOnly = true)
+	@GetMapping("/api/public-complaints")
+	public List<AdminComplaintController.AdminComplaintSummaryDto> allComplaints() {
+		return complaintRepository.findAllByOrderByCreatedAtDesc().stream()
+				.map(c -> new AdminComplaintController.AdminComplaintSummaryDto(
+						c.getId(),
+						c.getTitle(),
+						c.getStatus().name(),
+						c.getArea().getId(),
+						formatArea(c.getArea()),
+						c.getCategory().getId(),
+						c.getCategory().getName(),
+						c.getCreatedAt()
+				))
+				.toList();
+	}
+
+	private static String formatArea(com.zosh.db.entity.AreaEntity a) {
+		if (a == null) return "";
+		StringBuilder sb = new StringBuilder(a.getCity());
+		if (a.getZone() != null && !a.getZone().isBlank()) sb.append(" — ").append(a.getZone());
+		if (a.getWard() != null && !a.getWard().isBlank()) sb.append(" — ").append(a.getWard());
+		return sb.toString();
+	}
+
 	public record ComplaintDetailDto(
 			UUID id,
 			String title,
@@ -118,6 +144,23 @@ public class ComplaintController {
 			@RequestParam @NotBlank @Size(min = 10, max = 255) String anonymousUserHash
 	) {
 		ComplaintEntity c = complaintRepository.findByIdAndAnonymousUserHash(id, anonymousUserHash)
+				.orElseThrow(() -> new NotFoundException("Complaint not found"));
+		List<String> images = c.getImages() == null ? List.of() : List.of(c.getImages());
+		return new ComplaintDetailDto(
+				c.getId(),
+				c.getTitle(),
+				c.getDescription(),
+				c.getStatus().name(),
+				images,
+				c.getCreatedAt(),
+				c.getUpdatedAt()
+		);
+	}
+
+	@org.springframework.transaction.annotation.Transactional(readOnly = true)
+	@GetMapping("/api/public-complaints/{id}")
+	public ComplaintDetailDto publicComplaintDetail(@PathVariable UUID id) {
+		ComplaintEntity c = complaintRepository.findById(id)
 				.orElseThrow(() -> new NotFoundException("Complaint not found"));
 		List<String> images = c.getImages() == null ? List.of() : List.of(c.getImages());
 		return new ComplaintDetailDto(

@@ -27,6 +27,7 @@ function cn(...classes: (string | undefined | null | false)[]) {
 // Profile is now accessed via avatar dropdown — removed from sidebar
 const navItems = [
     { href: "/community", label: "Community", icon: Home },
+    { href: "/complaints", label: "All Complaints", icon: Bell },
     { href: "/complaints/my", label: "My Complaints", icon: FileText },
     { href: "/complaints/new", label: "Raise Complaint", icon: MessageSquare },
 ];
@@ -230,18 +231,6 @@ export default function UserLayout({ children }: { children: ReactNode }) {
                             })}
                         </div>
 
-                        {/* Quick Action */}
-                        <div className="mt-8">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-3">Quick Actions</div>
-                            <Link
-                                href="/complaints/new"
-                                onClick={() => setIsMobileMenuOpen(false)}
-                                className="flex items-center gap-3 px-3 py-3 text-sm font-semibold rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md hover:shadow-lg transition-all duration-200 active:scale-[0.97]"
-                            >
-                                <PlusCircle size={18} />
-                                New Complaint
-                            </Link>
-                        </div>
                     </nav>
 
                     {/* Sidebar User Section — shows name/email, logout only (no Profile link) */}

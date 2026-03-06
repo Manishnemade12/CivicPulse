@@ -33,6 +33,7 @@ public class SecurityConfig {
                 "/api/version",
                 "/api/areas",
                 "/api/complaint-categories",
+                "/api/public-complaints/**",
                 "/api/db/health"
             ).permitAll()
             .requestMatchers("/api/auth/**").permitAll()
