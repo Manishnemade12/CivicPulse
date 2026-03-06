@@ -149,7 +149,7 @@ export default function ProfilePage() {
             <p className="text-xs text-slate-400 mt-1">Share something with the community!</p>
           </div>
         ) : (
-          <CommunityFeed items={myPosts} loading={false} error={null} onRefresh={() => void load()} />
+          <CommunityFeed items={myPosts} loading={false} error={null} />
         )}
       </div>
     </motion.div>

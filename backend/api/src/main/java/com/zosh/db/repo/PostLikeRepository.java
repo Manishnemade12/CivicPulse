@@ -4,11 +4,13 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.zosh.db.entity.PostLikeEntity;
 
 public interface PostLikeRepository extends JpaRepository<PostLikeEntity, UUID> {
 	Optional<PostLikeEntity> findByPostIdAndUserId(UUID postId, UUID userId);
+	@Transactional
 	long deleteByPostIdAndUserId(UUID postId, UUID userId);
 	long countByPostId(UUID postId);
 	boolean existsByPostIdAndUserId(UUID postId, UUID userId);
