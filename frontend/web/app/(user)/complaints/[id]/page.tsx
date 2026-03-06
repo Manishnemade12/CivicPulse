@@ -109,7 +109,7 @@ export default function PublicComplaintDetailPage() {
                   <h1 className="text-3xl font-black text-slate-900 leading-tight tracking-tight">
                     {data.title}
                   </h1>
-                  <StatusBadge status={data.status} size="lg" />
+                  <StatusBadge status={data.status} size="md" />
                 </div>
               </div>
 

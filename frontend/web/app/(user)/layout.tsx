@@ -167,7 +167,7 @@ export default function UserLayout({ children }: { children: ReactNode }) {
         ?? (pathname.startsWith("/profile") ? "Profile" : "Dashboard");
 
     return (
-        <div className="min-h-screen bg-slate-50 font-sans">
+        <div className="h-screen flex flex-col bg-slate-50 font-sans overflow-hidden">
             {/* Mobile Header */}
             <div className="lg:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
                 <Link href="/community" className="flex items-center gap-2">
@@ -186,7 +186,7 @@ export default function UserLayout({ children }: { children: ReactNode }) {
                 </div>
             </div>
 
-            <div className="flex">
+            <div className="flex flex-1 overflow-hidden">
                 {/* Sidebar */}
                 <aside className={cn(
                     "fixed inset-y-0 left-0 z-40 w-[272px] bg-white border-r border-slate-200/80 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:h-screen lg:shrink-0 flex flex-col shadow-lg lg:shadow-none",
@@ -271,7 +271,7 @@ export default function UserLayout({ children }: { children: ReactNode }) {
                 </AnimatePresence>
 
                 {/* Main Content */}
-                <main className="flex-1 min-w-0">
+                <main className="flex-1 min-w-0 overflow-y-auto">
                     {/* Desktop Header — avatar opens dropdown */}
                     <header className="hidden lg:flex items-center justify-between px-8 py-4 bg-white border-b border-slate-200/80 sticky top-0 z-20">
                         <div className="flex items-center gap-2 text-sm">
