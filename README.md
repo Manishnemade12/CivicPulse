@@ -2,9 +2,8 @@
 
 ## Project Summary: Anonymous Social Complaint & Community Engagement Platform
 
-### This project is a social-impact full-stack web application designed to help people raise local area issues and engage with their community in a safe and transparent way.
-
-### The platform allows users to report problems anonymously to the appropriate municipal authorities, while also providing a public social space where users can openly share content and interact with others.
+This project is a social-impact full-stack web application designed to help people raise local area issues and engage with their community in a safe and transparent way.
+The platform allows users to report problems anonymously to the appropriate municipal authorities, while also providing a public social space where users can openly share content and interact with others.
 
 
 Standard full-stack layout (not microservices):
