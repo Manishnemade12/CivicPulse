@@ -270,6 +270,7 @@ export default function UserLayout({ children }: { children: ReactNode }) {
                     )}
                 </AnimatePresence>
 
+
                 {/* Main Content */}
                 <main className="flex-1 min-w-0 overflow-y-auto">
                     {/* Desktop Header — avatar opens dropdown */}
