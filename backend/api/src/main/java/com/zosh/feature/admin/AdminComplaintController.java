@@ -57,9 +57,19 @@ public class AdminComplaintController {
 			String title,
 			String status,
 			UUID areaId,
+			String areaName,
 			UUID categoryId,
+			String categoryName,
 			Instant createdAt
 	) {}
+
+	private static String formatArea(com.zosh.db.entity.AreaEntity a) {
+		if (a == null) return "";
+		StringBuilder sb = new StringBuilder(a.getCity());
+		if (a.getZone() != null && !a.getZone().isBlank()) sb.append(" — ").append(a.getZone());
+		if (a.getWard() != null && !a.getWard().isBlank()) sb.append(" — ").append(a.getWard());
+		return sb.toString();
+	}
 
 	@GetMapping("/api/admin/complaints")
 	public List<AdminComplaintSummaryDto> listComplaints(
@@ -93,7 +103,9 @@ public class AdminComplaintController {
 						c.getTitle(),
 						c.getStatus().name(),
 						c.getArea().getId(),
+						formatArea(c.getArea()),
 						c.getCategory().getId(),
+						c.getCategory().getName(),
 						c.getCreatedAt()
 				))
 				.toList();

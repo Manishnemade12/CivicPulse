@@ -62,6 +62,16 @@ export async function POST(req: NextRequest, ctx: { params: Promise<Params> }) {
   return proxy(req, "api", path);
 }
 
+export async function PUT(req: NextRequest, ctx: { params: Promise<Params> }) {
+  const { path } = await ctx.params;
+  return proxy(req, "api", path);
+}
+
+export async function PATCH(req: NextRequest, ctx: { params: Promise<Params> }) {
+  const { path } = await ctx.params;
+  return proxy(req, "api", path);
+}
+
 export async function DELETE(req: NextRequest, ctx: { params: Promise<Params> }) {
   const { path } = await ctx.params;
   return proxy(req, "api", path);

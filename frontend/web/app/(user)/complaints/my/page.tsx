@@ -2,42 +2,50 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { toast } from "sonner";
+import { Plus, Trash2, Eye, FileText } from "lucide-react";
 
-import { Container } from "@/components/Container";
 import { Button } from "@/components/ui/Button";
-import { Card, CardHeader } from "@/components/ui/Card";
-
-import { getOrCreateAnonymousUserHash } from "@/lib/anon";
-import { clientDelete, clientGet } from "@/lib/clientApi";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { SkeletonList } from "@/components/ui/Skeleton";
 import { useRequireAuth } from "@/lib/useRequireAuth";
+import { getOrCreateAnonymousUserHash } from "@/lib/anon";
+import { clientGet, clientDelete } from "@/lib/clientApi";
 
-type ComplaintSummary = {
+type Complaint = {
   id: string;
   title: string;
   status: string;
   createdAt: string;
-  updatedAt: string;
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.05, duration: 0.3 },
+  }),
 };
 
 export default function MyComplaintsPage() {
   const { checking } = useRequireAuth();
+  const router = useRouter();
 
-  const [items, setItems] = useState<ComplaintSummary[]>([]);
+  const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
     setError(null);
-    setActionError(null);
-
     try {
       const hash = getOrCreateAnonymousUserHash();
-      const res = await clientGet<ComplaintSummary[]>(
-        `/api/complaints/my?anonymousUserHash=${encodeURIComponent(hash)}`
-      );
-      setItems(res);
+      const data = await clientGet<Complaint[]>(`/api/complaints/my?anonymousUserHash=${encodeURIComponent(hash)}`);
+      setComplaints(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load");
     } finally {
@@ -46,85 +54,96 @@ export default function MyComplaintsPage() {
   }
 
   useEffect(() => {
-    let cancelled = false;
+    if (!checking) void load();
+  }, [checking]);
 
-    void (async () => {
-      try {
-        await load();
-      } finally {
-        // no-op
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  if (checking) {
-    return (
-      <Container>
-        <h1 className="text-2xl font-semibold">My Complaints</h1>
-        <p className="mt-2 text-sm opacity-70">Checking session…</p>
-      </Container>
-    );
+  async function onDelete(id: string) {
+    if (!confirm("Delete this complaint? This action cannot be undone.")) return;
+    try {
+      const hash = getOrCreateAnonymousUserHash();
+      await clientDelete(`/api/complaints/${encodeURIComponent(id)}?anonymousUserHash=${encodeURIComponent(hash)}`);
+      toast.success("Complaint deleted");
+      await load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete");
+    }
   }
 
+  if (checking) return null;
+
   return (
-    <Container>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">My Complaints</h1>
-        <Link href="/complaints/new" className="text-sm underline">
-          Raise new
-        </Link>
+    <div className="animate-fade-in">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">My Complaints</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Track and manage your submitted complaints</p>
+        </div>
+        <Button variant="gradient" size="sm" onClick={() => router.push("/complaints/new")}>
+          <Plus size={14} />
+          New Complaint
+        </Button>
       </div>
 
-      {loading ? <p className="mt-3 text-sm opacity-70">Loading…</p> : null}
-      {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
-      {actionError ? <p className="mt-3 text-sm text-red-700">{actionError}</p> : null}
+      {error && (
+        <div className="mb-4 rounded-xl bg-red-50 border border-red-100 p-4 text-sm text-red-600 font-medium">
+          {error}
+        </div>
+      )}
 
-      {!loading && items.length === 0 ? (
-        <Card className="mt-4">
-          <CardHeader title="No complaints" subtitle="You haven’t raised any complaints yet." />
-          <Link className="mt-3 inline-block text-sm underline" href="/complaints/new">
-            Raise your first complaint
-          </Link>
-        </Card>
-      ) : null}
+      {loading ? (
+        <SkeletonList count={4} />
+      ) : complaints.length === 0 ? (
+        <EmptyState
+          icon={<FileText className="h-8 w-8" />}
+          title="No complaints yet"
+          description="You haven't submitted any complaints. Report an issue to get started!"
+          action="Raise a Complaint"
+          onAction={() => router.push("/complaints/new")}
+        />
+      ) : (
+        <div className="space-y-3">
+          {complaints.map((c, i) => (
+            <motion.div
+              key={c.id}
+              custom={i}
+              initial="hidden"
+              animate="visible"
+              variants={cardVariants}
+            >
+              <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md hover:border-slate-300/80 group">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-base font-bold text-slate-900 truncate">{c.title}</h3>
+                      <StatusBadge status={c.status} size="sm" />
+                    </div>
+                    <p className="mt-1 text-xs text-slate-400 font-medium">
+                      ID: {c.id.slice(0, 8)}… · {new Date(c.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
 
-      <div className="mt-4 grid gap-3">
-        {items.map((c) => (
-          <Card key={c.id}>
-            <CardHeader
-              title={
-                <Link className="underline" href={`/complaints/my/${c.id}`}>
-                  {c.title}
-                </Link>
-              }
-              subtitle={`Status: ${c.status} · Created: ${new Date(c.createdAt).toLocaleString()}`}
-              right={
-                <Button
-                  size="sm"
-                  variant="danger"
-                  onClick={async () => {
-                    setActionError(null);
-                    try {
-                      const hash = getOrCreateAnonymousUserHash();
-                      await clientDelete(
-                        `/api/complaints/${encodeURIComponent(c.id)}?anonymousUserHash=${encodeURIComponent(hash)}`
-                      );
-                      await load();
-                    } catch (e) {
-                      setActionError(e instanceof Error ? e.message : "Failed to delete");
-                    }
-                  }}
-                >
-                  Delete
-                </Button>
-              }
-            />
-          </Card>
-        ))}
-      </div>
-    </Container>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Link href={`/complaints/my/${c.id}`}>
+                      <Button variant="ghost" size="sm">
+                        <Eye size={14} />
+                      </Button>
+                    </Link>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-slate-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => void onDelete(c.id)}
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

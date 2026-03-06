@@ -1,14 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { X } from "lucide-react";
+import { X, Send, Image } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/Button";
 import { FieldLabel, Input, Textarea } from "@/components/ui/Field";
-import { clientPost } from "@/lib/clientApi";
 
-type CreatePostResponse = {
-    id: string;
+type Props = {
+    isOpen: boolean;
+    onClose: () => void;
+    onSuccess: () => void;
 };
 
 function parseMediaUrls(text: string): string[] {
@@ -17,12 +20,6 @@ function parseMediaUrls(text: string): string[] {
         .map((s) => s.trim())
         .filter((s) => s.length > 0);
 }
-
-type Props = {
-    isOpen: boolean;
-    onClose: () => void;
-    onSuccess: () => void;
-};
 
 export function CreatePostModal({ isOpen, onClose, onSuccess }: Props) {
     const [title, setTitle] = useState("");
@@ -45,17 +42,9 @@ export function CreatePostModal({ isOpen, onClose, onSuccess }: Props) {
 
         setSubmitting(true);
         try {
-            // Using direct fetch as in original page, but clientPost helper would be consistent.
-            // Original used fetch directly for better error handling in try/catch block or just preference?
-            // Let's use fetch consistent with original page logic but absolute path.
-            // Actually, let's use clientPost if possible, but manual fetch is fine too.
-            // I'll stick to the fetch pattern from the original page to minimize risk.
-
             const res = await fetch("/api/community/posts", {
                 method: "POST",
-                headers: {
-                    "content-type": "application/json",
-                },
+                headers: { "content-type": "application/json" },
                 body: JSON.stringify({
                     title: title.trim() ? title.trim() : null,
                     content: trimmedContent,
@@ -68,11 +57,11 @@ export function CreatePostModal({ isOpen, onClose, onSuccess }: Props) {
                 throw new Error(txt || `Request failed (HTTP ${res.status})`);
             }
 
-            // Reset form
             setTitle("");
             setContent("");
             setMediaUrlsText("");
 
+            toast.success("Post created!", { description: "Your post is now visible in the community feed." });
             onSuccess();
             onClose();
         } catch (err) {
@@ -82,65 +71,103 @@ export function CreatePostModal({ isOpen, onClose, onSuccess }: Props) {
         }
     }
 
-    if (!isOpen) return null;
-
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-2xl rounded-xl bg-white shadow-2xl animate-in fade-in zoom-in duration-200">
-                <div className="flex items-center justify-between border-b border-gray-100 p-4">
-                    <h2 className="text-lg font-semibold text-gray-900">Create Post</h2>
-                    <button onClick={onClose} className="rounded-full p-1 hover:bg-gray-100 transition-colors">
-                        <X size={20} className="text-gray-500" />
-                    </button>
-                </div>
+        <AnimatePresence>
+            {isOpen ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    {/* Backdrop */}
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                        onClick={onClose}
+                    />
 
-                <div className="p-6">
-                    {error ? <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600 font-medium">{error}</div> : null}
-
-                    <form onSubmit={onSubmit} className="grid gap-5">
-                        <FieldLabel label="Title (optional)">
-                            <Input
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                placeholder="e.g. New park opening"
-                                maxLength={200}
-                                className="bg-gray-50 border-gray-200 focus:bg-white transition-colors"
-                                autoFocus
-                            />
-                        </FieldLabel>
-
-                        <FieldLabel label="Content">
-                            <Textarea
-                                value={content}
-                                onChange={(e) => setContent(e.target.value)}
-                                placeholder="What's on your mind?"
-                                rows={5}
-                                maxLength={5000}
-                                className="min-h-[120px] bg-gray-50 border-gray-200 focus:bg-white transition-colors"
-                            />
-                        </FieldLabel>
-
-                        <FieldLabel label="Media URLs (optional, one per line)">
-                            <Textarea
-                                value={mediaUrlsText}
-                                onChange={(e) => setMediaUrlsText(e.target.value)}
-                                placeholder="https://example.com/image.jpg"
-                                rows={3}
-                                className="bg-gray-50 border-gray-200 focus:bg-white transition-colors"
-                            />
-                        </FieldLabel>
-
-                        <div className="flex justify-end gap-3 pt-2">
-                            <Button type="button" variant="secondary" onClick={onClose} disabled={submitting}>
-                                Cancel
-                            </Button>
-                            <Button type="submit" variant="primary" disabled={submitting}>
-                                {submitting ? "Posting…" : "Post"}
-                            </Button>
+                    {/* Modal */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                        transition={{ duration: 0.2 }}
+                        className="relative w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-slate-200/80"
+                    >
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-5 border-b border-slate-100">
+                            <div>
+                                <h2 className="text-lg font-bold text-slate-900">Create Post</h2>
+                                <p className="text-xs text-slate-400 mt-0.5">Share with the community</p>
+                            </div>
+                            <button
+                                onClick={onClose}
+                                className="rounded-xl p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all"
+                            >
+                                <X size={18} />
+                            </button>
                         </div>
-                    </form>
+
+                        {/* Body */}
+                        <div className="p-6">
+                            {error ? (
+                                <div className="mb-5 rounded-xl bg-red-50 border border-red-100 p-3 text-sm text-red-600 font-medium animate-slide-down">
+                                    {error}
+                                </div>
+                            ) : null}
+
+                            <form onSubmit={onSubmit} className="grid gap-5">
+                                <FieldLabel label="Title" hint="Optional">
+                                    <Input
+                                        value={title}
+                                        onChange={(e) => setTitle(e.target.value)}
+                                        placeholder="Give your post a title..."
+                                        maxLength={200}
+                                        autoFocus
+                                    />
+                                </FieldLabel>
+
+                                <FieldLabel label="Content">
+                                    <Textarea
+                                        value={content}
+                                        onChange={(e) => setContent(e.target.value)}
+                                        placeholder="What's on your mind?"
+                                        rows={5}
+                                        maxLength={5000}
+                                        className="min-h-[120px]"
+                                    />
+                                    <div className="text-right text-xs text-slate-400 mt-1">
+                                        {content.length}/5000
+                                    </div>
+                                </FieldLabel>
+
+                                <FieldLabel label="Media URLs" hint="Optional, one per line">
+                                    <Textarea
+                                        value={mediaUrlsText}
+                                        onChange={(e) => setMediaUrlsText(e.target.value)}
+                                        placeholder="https://example.com/image.jpg"
+                                        rows={2}
+                                    />
+                                </FieldLabel>
+
+                                <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                                    <div className="flex items-center gap-1 text-slate-400">
+                                        <Image size={16} />
+                                        <span className="text-xs font-medium">{mediaUrls.length} media attached</span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <Button variant="ghost" onClick={onClose} disabled={submitting}>
+                                            Cancel
+                                        </Button>
+                                        <Button type="submit" variant="gradient" loading={submitting}>
+                                            <Send size={15} />
+                                            {submitting ? "Posting…" : "Post"}
+                                        </Button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </motion.div>
                 </div>
-            </div>
-        </div>
+            ) : null}
+        </AnimatePresence>
     );
 }

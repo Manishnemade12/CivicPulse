@@ -52,11 +52,12 @@ public class CommunityController {
 		this.userRepository = userRepository;
 	}
 
-	public record FeedItemDto(UUID id, String type, String title, String content, List<String> mediaUrls, Instant createdAt, String authorName, UUID authorId) {}
+	public record FeedItemDto(UUID id, String type, String title, String content, List<String> mediaUrls, Instant createdAt, String authorName, UUID authorId, long likeCount, long commentCount, boolean likedByMe) {}
 	public record MyPostDto(UUID id, String type, String title, String content, List<String> mediaUrls, Instant createdAt) {}
 
 	@GetMapping("/api/community/feed")
-	public List<FeedItemDto> feed() {
+	public List<FeedItemDto> feed(@AuthenticationPrincipal Jwt jwt) {
+		UUID meId = (jwt != null && jwt.getSubject() != null) ? UUID.fromString(jwt.getSubject()) : null;
 		return communityPostRepository.findTop50ByOrderByCreatedAtDesc().stream()
 				.map(p -> new FeedItemDto(
 						p.getId(),
@@ -65,10 +66,11 @@ public class CommunityController {
 						p.getContent(),
 						p.getMediaUrls() == null ? Collections.emptyList() : Arrays.asList(p.getMediaUrls()),
 						p.getCreatedAt(),
-
-						//can remove
 						p.getUser() != null ? p.getUser().getName() : "Anonymous User",
-						p.getUser() != null ? p.getUser().getId() : null
+						p.getUser() != null ? p.getUser().getId() : null,
+						postLikeRepository.countByPostId(p.getId()),
+						commentRepository.countByPostId(p.getId()),
+						meId != null && postLikeRepository.existsByPostIdAndUserId(p.getId(), meId)
 				))
 				.toList();
 	}

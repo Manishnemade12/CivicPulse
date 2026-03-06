@@ -1,5 +1,6 @@
 package com.zosh.feature.auth;
 
+import java.time.Instant;
 import java.util.UUID;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,7 +21,7 @@ public class MeController {
 		this.userRepository = userRepository;
 	}
 
-	public record MeResponse(UUID id, String name, String email, String role) {}
+	public record MeResponse(UUID id, String name, String email, String role, Instant createdAt) {}
 
 	@GetMapping("/api/me")
 	public MeResponse me(@AuthenticationPrincipal Jwt jwt) {
@@ -30,6 +31,6 @@ public class MeController {
 		UUID userId = UUID.fromString(jwt.getSubject());
 		UserEntity user = userRepository.findById(userId)
 				.orElseThrow(() -> new NotFoundException("User not found"));
-		return new MeResponse(user.getId(), user.getName(), user.getEmail(), user.getRole().name());
+		return new MeResponse(user.getId(), user.getName(), user.getEmail(), user.getRole().name(), user.getCreatedAt());
 	}
 }
