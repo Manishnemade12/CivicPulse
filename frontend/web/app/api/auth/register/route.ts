@@ -8,12 +8,22 @@ export async function POST(req: NextRequest) {
   const base = getApiBaseUrl().replace(/\/$/, "");
   const upstreamUrl = new URL(`${base}/api/auth/register`);
 
-  const upstream = await fetch(upstreamUrl, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: await req.text(),
-    cache: "no-store",
-  });
+  let upstream: Response;
+  try {
+    upstream = await fetch(upstreamUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: await req.text(),
+      cache: "no-store",
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Backend unreachable";
+    console.error("[/api/auth/register] Backend unreachable:", msg);
+    return NextResponse.json(
+      { error: { code: "BACKEND_UNAVAILABLE", message: "API server is not running. Start it with: npm run dev (in backend/express-api)" } },
+      { status: 503 }
+    );
+  }
 
   const text = await upstream.text();
 

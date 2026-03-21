@@ -34,12 +34,23 @@ async function proxy(req: NextRequest, prefix: string, pathParts: string[]) {
   const method = req.method.toUpperCase();
   const bodyText = method === "GET" || method === "HEAD" ? undefined : await req.text();
 
-  const upstream = await fetch(targetUrl, {
-    method,
-    headers,
-    body: bodyText && bodyText.length > 0 ? bodyText : undefined,
-    cache: "no-store",
-  });
+  let upstream: Response;
+  try {
+    upstream = await fetch(targetUrl, {
+      method,
+      headers,
+      body: bodyText && bodyText.length > 0 ? bodyText : undefined,
+      cache: "no-store",
+    });
+  } catch (err) {
+    // Connection refused or DNS failure — backend is unreachable
+    const msg = err instanceof Error ? err.message : "Backend unreachable";
+    console.error(`[Proxy] Failed to reach ${targetUrl}:`, msg);
+    return NextResponse.json(
+      { error: { code: "BACKEND_UNAVAILABLE", message: "The API server is not reachable. Please try again later." } },
+      { status: 503 }
+    );
+  }
 
   const upstreamBody = await upstream.arrayBuffer();
   const respHeaders = new Headers(upstream.headers);
