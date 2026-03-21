@@ -15,6 +15,7 @@ import {
     ChevronRight,
     User,
     Settings,
+    Shield,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LogoutButton } from "@/components/LogoutButton";
@@ -94,6 +95,18 @@ function AvatarMenu({ me, authed }: { me: MeResponse | null; authed: boolean }) 
                                 </div>
                                 View Profile
                             </Link>
+                            {me.role === "ADMIN" && (
+                                <Link
+                                    href="/admin/complaints"
+                                    onClick={() => setOpen(false)}
+                                    className="flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-indigo-600 rounded-xl hover:bg-indigo-50 transition-colors"
+                                >
+                                    <div className="h-7 w-7 rounded-lg bg-indigo-100 flex items-center justify-center">
+                                        <Shield size={14} className="text-indigo-600" />
+                                    </div>
+                                    Admin Panel
+                                </Link>
+                            )}
                             <button
                                 disabled
                                 className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-slate-400 rounded-xl cursor-not-allowed"

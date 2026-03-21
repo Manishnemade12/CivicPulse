@@ -18,21 +18,34 @@ const variants: Record<BadgeVariant, string> = {
 export function Badge({
   children,
   variant = "default",
+  mode = "light",
   dot = false,
   pulse = false,
   className,
 }: {
   children: ReactNode;
   variant?: BadgeVariant;
+  mode?: "light" | "glass";
   dot?: boolean;
   pulse?: boolean;
   className?: string;
 }) {
+  const isGlass = mode === "glass";
+
+  const glassVariants: Record<BadgeVariant, string> = {
+    default: "bg-slate-500/10 text-slate-400 border-slate-500/20",
+    primary: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20 shadow-[0_0_10px_rgba(99,102,241,0.1)]",
+    success: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]",
+    warning: "bg-amber-500/10 text-amber-400 border-amber-500/20 shadow-[0_0_10px_rgba(245,158,11,0.1)]",
+    danger:  "bg-red-500/10 text-red-400 border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]",
+    info:    "bg-sky-500/10 text-sky-400 border-sky-500/20 shadow-[0_0_10px_rgba(14,165,233,0.1)]",
+  };
+
   return (
     <span
       className={cx(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold tracking-wide transition-colors",
-        variants[variant],
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest transition-all duration-300",
+        isGlass ? glassVariants[variant] : variants[variant],
         className
       )}
     >

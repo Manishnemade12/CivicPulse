@@ -1,35 +1,35 @@
 import { Badge } from "./Badge";
 import {
-    ClockIcon,
-    ArrowPathIcon,
-    CheckCircleIcon,
-    ExclamationCircleIcon,
-} from "@heroicons/react/20/solid";
+    Clock,
+    RefreshCw,
+    CheckCircle2,
+    AlertCircle,
+} from "lucide-react";
 
 const statusConfig: Record<
     string,
     {
         variant: "warning" | "info" | "success" | "danger" | "default";
-        icon: React.FC<{ className?: string }>;
+        icon: any;
         label: string;
         pulse: boolean;
     }
 > = {
     RAISED: {
         variant: "warning",
-        icon: ClockIcon,
+        icon: Clock,
         label: "Raised",
         pulse: true,
     },
     IN_PROGRESS: {
         variant: "info",
-        icon: ArrowPathIcon,
+        icon: RefreshCw,
         label: "In Progress",
         pulse: true,
     },
     RESOLVED: {
         variant: "success",
-        icon: CheckCircleIcon,
+        icon: CheckCircle2,
         label: "Resolved",
         pulse: false,
     },
@@ -38,13 +38,15 @@ const statusConfig: Record<
 export function StatusBadge({
     status,
     size = "md",
+    mode = "light",
 }: {
     status: string;
     size?: "sm" | "md";
+    mode?: "light" | "glass";
 }) {
     const config = statusConfig[status] ?? {
         variant: "default" as const,
-        icon: ExclamationCircleIcon,
+        icon: AlertCircle,
         label: status,
         pulse: false,
     };
@@ -52,8 +54,8 @@ export function StatusBadge({
     const Icon = config.icon;
 
     return (
-        <Badge variant={config.variant} dot pulse={config.pulse}>
-            <Icon className={size === "sm" ? "h-3 w-3" : "h-3.5 w-3.5"} />
+        <Badge variant={config.variant} mode={mode} dot pulse={config.pulse}>
+            <Icon size={size === "sm" ? 12 : 14} />
             <span>{config.label}</span>
         </Badge>
     );

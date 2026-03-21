@@ -32,10 +32,23 @@ function LoginPageInner() {
       }
 
       await res.json();
-      toast.success("Welcome back!", { description: "Redirecting to your dashboard..." });
 
-      const next = searchParams.get("next") || "/community";
-      router.replace(next);
+      // Check role for redirection
+      let next = searchParams.get("next");
+      if (!next) {
+        try {
+          const meRes = await fetch("/api/me", { cache: "no-store" });
+          if (meRes.ok) {
+            const me = (await meRes.json()) as { role: string };
+            next = me.role === "ADMIN" ? "/admin/complaints" : "/community";
+          }
+        } catch {
+          // ignore profile fetch errors; fallback to /community
+        }
+      }
+
+      toast.success("Welcome back!", { description: "Redirecting to your dashboard..." });
+      router.replace(next || "/community");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Login failed");
     } finally {

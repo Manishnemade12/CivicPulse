@@ -1,19 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { RefreshCw, FileText } from "lucide-react";
-import {
-  ClockIcon,
-  ArrowPathIcon,
-  CheckCircleIcon,
-  FunnelIcon,
-  InboxIcon,
-} from "@heroicons/react/20/solid";
+import { 
+  RefreshCw, 
+  FileText, 
+  Inbox, 
+  Clock, 
+  CheckCircle2, 
+  AlertCircle,
+  Search,
+  Filter,
+  BarChart3,
+  Calendar,
+  MapPin,
+  Tag,
+  ChevronRight,
+  MoreVertical,
+  X
+} from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
-import { Select } from "@/components/ui/Field";
+import { Select, Input, Textarea } from "@/components/ui/Field";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { StatsCard } from "@/components/ui/StatsCard";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -28,6 +37,7 @@ export default function AdminComplaintsPage() {
   // Filters
   const [filterStatus, setFilterStatus] = useState("");
   const [filterAreaId, setFilterAreaId] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Status update
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -45,23 +55,36 @@ export default function AdminComplaintsPage() {
 
       const [complaintsRes, areasRes] = await Promise.all([
         fetch(`/api/admin/complaints?${params.toString()}`, { cache: "no-store" }),
-        fetch("/api/areas", { cache: "no-store" }), // Fixed: was /api/ref/areas
+        fetch("/api/areas", { cache: "no-store" }),
       ]);
 
       if (!complaintsRes.ok) throw new Error("Failed to load complaints");
-      setComplaints((await complaintsRes.json()) as AdminComplaint[]);
-
+      let data = (await complaintsRes.json()) as AdminComplaint[];
+      
+      // Local filtering for search
+      if (searchQuery) {
+        data = data.filter(c => 
+          c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          c.areaName.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      }
+      
+      setComplaints(data);
       if (areasRes.ok) setAreas((await areasRes.json()) as AreaDto[]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load");
+      toast.error("Failed to load dashboard data");
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    void load();
-  }, [filterStatus, filterAreaId]);
+    const timer = setTimeout(() => {
+      void load();
+    }, 300); // Debounce search
+    return () => clearTimeout(timer);
+  }, [filterStatus, filterAreaId, searchQuery]);
 
   async function onUpdateStatus(id: string) {
     if (!newStatus) return;
@@ -73,13 +96,15 @@ export default function AdminComplaintsPage() {
         body: JSON.stringify({ status: newStatus, comment: comment.trim() || undefined }),
       });
       if (!res.ok) throw new Error("Failed to update status");
-      toast.success("Status updated!", { description: `Complaint set to ${newStatus}` });
+      toast.success("Status updated successfully!", { 
+        description: `Complaint status changed to ${newStatus.replace('_', ' ')}` 
+      });
       setUpdatingId(null);
       setNewStatus("");
       setComment("");
       await load();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed");
+      toast.error(e instanceof Error ? e.message : "Failed to update status");
     } finally {
       setUpdating(false);
     }
@@ -90,183 +115,279 @@ export default function AdminComplaintsPage() {
   const resolved = complaints.filter((c) => c.status === "RESOLVED").length;
 
   return (
-    <div className="animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Complaints</h1>
-          <p className="text-sm text-slate-400 mt-0.5">Manage and resolve citizen complaints</p>
+    <div className="relative min-h-[calc(100vh-120px)] animate-fade-in pb-20">
+      {/* Background Decor */}
+      <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-600/10 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute top-1/2 -left-48 w-96 h-96 bg-purple-600/10 blur-[120px] rounded-full pointer-events-none" />
+
+      {/* Page Header */}
+      <div className="relative flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs uppercase tracking-[0.2em]">
+            <BarChart3 size={14} />
+            Management Dashboard
+          </div>
+          <h1 className="text-4xl font-black text-white tracking-tight">
+            Complaints <span className="text-slate-600">Hub</span>
+          </h1>
+          <p className="text-slate-400 font-medium max-w-lg">
+            Monitor and process citizen reports in real-time. High impact issues are prioritized automatically.
+          </p>
         </div>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => void load()}
-          disabled={loading}
-          className="bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white"
-        >
-          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-          Refresh
-        </Button>
+        
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => void load()}
+            disabled={loading}
+            className="text-slate-400 hover:text-white hover:bg-white/5 border border-white/5"
+          >
+            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+            <span>Sync Data</span>
+          </Button>
+          <div className="h-8 w-px bg-slate-800 mx-2" />
+          <div className="text-right hidden sm:block">
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">Last Refreshed</div>
+            <div className="text-xs font-mono text-slate-400 mt-1">{new Date().toLocaleTimeString()}</div>
+          </div>
+        </div>
       </div>
 
-      {/* Stats Row */}
-      <div className="grid sm:grid-cols-4 gap-4 mb-6">
+      {/* Stats Cards Dashboard */}
+      <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
         <StatsCard
-          icon={<InboxIcon className="h-5 w-5" />}
-          label="Total"
+          variant="glass"
+          accentColor="indigo"
+          icon={<Inbox size={20} />}
+          label="Total Reports"
           value={complaints.length}
-          className="bg-slate-900 border-slate-800 [&>div:last-child>div:first-child]:text-white"
         />
         <StatsCard
-          icon={<ClockIcon className="h-5 w-5" />}
-          label="Raised"
+          variant="glass"
+          accentColor="amber"
+          icon={<Clock size={20} />}
+          label="Awaiting Action"
           value={raised}
-          className="bg-slate-900 border-slate-800 [&>div:first-child]:bg-amber-500/10 [&>div:first-child]:text-amber-400 [&>div:last-child>div:first-child]:text-white"
         />
         <StatsCard
-          icon={<ArrowPathIcon className="h-5 w-5" />}
-          label="In Progress"
+          variant="glass"
+          accentColor="sky"
+          icon={<RefreshCw size={20} />}
+          label="In Resolution"
           value={inProgress}
-          className="bg-slate-900 border-slate-800 [&>div:first-child]:bg-sky-500/10 [&>div:first-child]:text-sky-400 [&>div:last-child>div:first-child]:text-white"
         />
         <StatsCard
-          icon={<CheckCircleIcon className="h-5 w-5" />}
-          label="Resolved"
+          variant="glass"
+          accentColor="emerald"
+          icon={<CheckCircle2 size={20} />}
+          label="Resolved Cases"
           value={resolved}
-          className="bg-slate-900 border-slate-800 [&>div:first-child]:bg-emerald-500/10 [&>div:first-child]:text-emerald-400 [&>div:last-child>div:first-child]:text-white"
         />
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 mb-6 p-4 rounded-2xl bg-slate-900 border border-slate-800">
-        <div className="flex items-center gap-2 text-slate-400 text-sm font-semibold">
-          <FunnelIcon className="h-4 w-4" />
-          Filters
+      {/* Action Bar — Filters & Search */}
+      <div className="relative mb-8 p-1 rounded-[22px] bg-slate-900/50 border border-slate-800/80 backdrop-blur-md shadow-2xl">
+        <div className="flex flex-col lg:flex-row items-center gap-2">
+          {/* Search */}
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+            <input 
+              type="text"
+              placeholder="Search by title or area..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-12 pl-12 pr-4 bg-transparent text-white placeholder:text-slate-500 text-sm font-medium outline-none"
+            />
+          </div>
+          
+          <div className="hidden lg:block w-px h-8 bg-slate-800" />
+          
+          {/* Status Filter */}
+          <div className="flex flex-col sm:flex-row items-center gap-2 w-full lg:w-auto p-1 py-1.5 lg:p-1">
+            <div className="flex items-center gap-2 px-3 text-slate-500 text-xs font-bold uppercase tracking-wider whitespace-nowrap">
+              <Filter size={14} />
+              Filter By
+            </div>
+            <Select
+              variant="dark"
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="h-10 text-xs w-full sm:w-40 !rounded-xl"
+            >
+              <option value="">All Statuses</option>
+              <option value="RAISED">Raised</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="RESOLVED">Resolved</option>
+            </Select>
+            <Select
+              variant="dark"
+              value={filterAreaId}
+              onChange={(e) => setFilterAreaId(e.target.value)}
+              className="h-10 text-xs w-full sm:w-56 !rounded-xl"
+            >
+              <option value="">Specific Area</option>
+              {areas.map((a) => (
+                <option key={a.id} value={a.id}>{formatArea(a)}</option>
+              ))}
+            </Select>
+          </div>
         </div>
-        <Select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          className="bg-slate-800 border-slate-700 text-white h-9 text-xs w-40"
-        >
-          <option value="">All Statuses</option>
-          <option value="RAISED">Raised</option>
-          <option value="IN_PROGRESS">In Progress</option>
-          <option value="RESOLVED">Resolved</option>
-        </Select>
-        <Select
-          value={filterAreaId}
-          onChange={(e) => setFilterAreaId(e.target.value)}
-          className="bg-slate-800 border-slate-700 text-white h-9 text-xs w-48"
-        >
-          <option value="">All Areas</option>
-          {areas.map((a) => (
-            <option key={a.id} value={a.id}>{formatArea(a)}</option>
-          ))}
-        </Select>
       </div>
 
       {error && (
-        <div className="mb-4 rounded-xl bg-red-500/10 border border-red-500/20 p-4 text-sm text-red-400 font-medium">
-          {error}
-        </div>
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+          className="mb-8 rounded-2xl bg-red-500/10 border border-red-500/20 p-5 flex items-center gap-4 text-red-200"
+        >
+          <AlertCircle className="shrink-0" size={20} />
+          <div className="flex-1 text-sm font-medium">{error}</div>
+          <Button onClick={() => void load()} variant="ghost" size="sm" className="text-red-400 hover:bg-red-500/10">Retry</Button>
+        </motion.div>
       )}
 
       {/* Complaints List */}
-      {loading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="rounded-2xl bg-slate-900 border border-slate-800 p-5 space-y-3">
-              <div className="h-5 w-2/5 rounded-lg bg-slate-800 animate-shimmer" />
-              <div className="h-3 w-3/5 rounded-lg bg-slate-800 animate-shimmer" />
-            </div>
-          ))}
-        </div>
-      ) : complaints.length === 0 ? (
-        <EmptyState
-          icon={<FileText className="h-8 w-8" />}
-          title="No complaints found"
-          description="Try adjusting your filters to see more results."
-        />
-      ) : (
-        <div className="space-y-3">
-          {complaints.map((c, i) => (
-            <motion.div
-              key={c.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04 }}
-            >
-              <div className="rounded-2xl bg-slate-900 border border-slate-800 p-5 transition-all hover:border-slate-700 group">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-sm font-bold text-white">{c.title}</h3>
-                      <StatusBadge status={c.status} size="sm" />
-                    </div>
-                    <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-500 flex-wrap">
-                      {/* Fixed: now shows real names from backend */}
-                      <span>{c.areaName || "—"}</span>
-                      <span>•</span>
-                      <span>{c.categoryName || "—"}</span>
-                      <span>•</span>
-                      <span>{new Date(c.createdAt).toLocaleDateString()}</span>
-                    </div>
-                  </div>
+      <div className="relative space-y-4">
+        {loading ? (
+          <div className="grid gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-32 rounded-3xl bg-slate-900 border border-slate-800 animate-pulse" />
+            ))}
+          </div>
+        ) : complaints.length === 0 ? (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-20">
+            <EmptyState
+              icon={<FileText className="h-12 w-12 text-slate-700" />}
+              title="No active reports"
+              description="Your filters didn't return any results. Try a broader search."
+              className="glass-dark border-slate-800/50"
+            />
+          </motion.div>
+        ) : (
+          <AnimatePresence mode="popLayout">
+            {complaints.map((c, i) => (
+              <motion.div
+                key={c.id}
+                layout
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.3, delay: i * 0.05 }}
+              >
+                <div className="group relative overflow-hidden rounded-[2.5rem] bg-slate-900 border border-slate-800/80 p-6 transition-all duration-300 hover:border-indigo-500/50 hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] hover:-translate-y-1">
+                  {/* Subtle hover accent */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-600/5 to-purple-600/5 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                  
+                  <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 relative z-10">
+                    <div className="flex-1 flex gap-5">
+                      {/* Status Indicator Bar */}
+                      <div className={`w-1.5 rounded-full ${
+                        c.status === 'RAISED' ? 'bg-amber-500' :
+                        c.status === 'IN_PROGRESS' ? 'bg-sky-500' : 'bg-emerald-500'
+                      } shadow-[0_0_10px_currentColor] opacity-60`} />
 
-                  <div className="shrink-0">
-                    {updatingId === c.id ? (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Select
-                          value={newStatus}
-                          onChange={(e) => setNewStatus(e.target.value)}
-                          className="bg-slate-800 border-slate-700 text-white h-8 text-xs w-32"
-                        >
-                          <option value="">Status...</option>
-                          <option value="RAISED">Raised</option>
-                          <option value="IN_PROGRESS">In Progress</option>
-                          <option value="RESOLVED">Resolved</option>
-                        </Select>
-                        <input
-                          type="text"
-                          value={comment}
-                          onChange={(e) => setComment(e.target.value)}
-                          placeholder="Comment (optional)"
-                          className="h-8 rounded-xl bg-slate-800 border border-slate-700 px-3 text-xs text-white placeholder:text-slate-500 outline-none focus:border-indigo-500 w-40"
-                        />
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          loading={updating}
-                          onClick={() => void onUpdateStatus(c.id)}
-                        >
-                          Save
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-slate-400"
-                          onClick={() => { setUpdatingId(null); setNewStatus(""); setComment(""); }}
-                        >
-                          Cancel
-                        </Button>
+                      <div className="min-w-0 space-y-3">
+                        <div className="flex items-center gap-3">
+                          <h3 className="text-xl font-black text-white tracking-tight truncate">{c.title}</h3>
+                          <StatusBadge status={c.status} size="sm" mode="glass" />
+                        </div>
+                        
+                        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-semibold text-slate-500">
+                          <div className="flex items-center gap-2">
+                            <MapPin size={14} className="text-slate-600" />
+                            <span className="text-slate-300">{c.areaName}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Tag size={14} className="text-slate-600" />
+                            <span className="text-slate-300">{c.categoryName}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Calendar size={14} className="text-slate-600" />
+                            <span>{new Date(c.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        </div>
                       </div>
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => setUpdatingId(c.id)}
-                      >
-                        Update Status
-                      </Button>
-                    )}
+                    </div>
+
+                    <div className="xl:min-w-[440px] bg-slate-800/20 p-5 rounded-[2rem] border border-white/5 transition-colors group-hover:bg-slate-800/40">
+                      {updatingId === c.id ? (
+                        <div className="flex flex-col gap-3 animate-scale-in">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] pl-1">Update Status</div>
+                            <Select
+                              variant="dark"
+                              value={newStatus}
+                              onChange={(e) => setNewStatus(e.target.value)}
+                              className="h-9 text-xs w-40 !rounded-xl"
+                            >
+                              <option value="">Select...</option>
+                              <option value="RAISED">Raised</option>
+                              <option value="IN_PROGRESS">In Progress</option>
+                              <option value="RESOLVED">Resolved</option>
+                            </Select>
+                          </div>
+                          
+                          <div className="space-y-4">
+                            <div className="flex flex-col gap-2">
+                              <Textarea
+                                variant="dark"
+                                rows={3}
+                                value={comment}
+                                onChange={(e: any) => setComment(e.target.value)}
+                                placeholder="Add detailed action note (e.g. 'Technician assigned', 'Waiting for parts')..."
+                                className="w-full !rounded-2xl text-xs font-medium leading-relaxed"
+                              />
+                            </div>
+                            
+                            <div className="flex items-center justify-end gap-2 pr-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="!h-10 px-4 !rounded-xl text-slate-400 hover:text-slate-300 hover:bg-white/5 font-bold text-[10px] uppercase tracking-wider"
+                                onClick={() => { setUpdatingId(null); setNewStatus(""); setComment(""); }}
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                className="!h-10 !rounded-xl bg-indigo-600 px-6 font-bold text-[10px] uppercase tracking-widest shadow-[0_4px_12px_rgba(79,70,229,0.3)] hover:shadow-[0_4px_20px_rgba(79,70,229,0.5)]"
+                                loading={updating}
+                                onClick={() => void onUpdateStatus(c.id)}
+                              >
+                                Save Changes
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-1 pl-1">
+                            <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">Status Management</div>
+                            <div className="text-[10px] text-slate-600 font-medium">Click to update progress</div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="!h-11 px-5 font-bold text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-2xl group/btn border border-transparent hover:border-indigo-500/20 transition-all"
+                            onClick={() => {
+                              setUpdatingId(c.id);
+                              setNewStatus(c.status);
+                            }}
+                          >
+                            <span>Manage Case</span>
+                            <ChevronRight size={14} className="transition-transform group-hover/btn:translate-x-0.5" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      )}
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        )}
+      </div>
     </div>
   );
 }
