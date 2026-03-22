@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     const msg = err instanceof Error ? err.message : "Backend unreachable";
     console.error("[/api/auth/register] Backend unreachable:", msg);
     return NextResponse.json(
-      { error: { code: "BACKEND_UNAVAILABLE", message: "API server is not running. Start it with: npm run dev (in backend/express-api)" } },
+      { error: { code: "BACKEND_UNAVAILABLE", message: "API server is not reachable. Please try again later." } },
       { status: 503 }
     );
   }

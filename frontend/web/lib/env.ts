@@ -1,9 +1,7 @@
 export function getApiBaseUrl(): string {
-  // Server components can safely read non-public env vars.
-  // For local dev, we fall back to the backend default.
-  return (
-    process.env.NEXT_PUBLIC_API_BASE_URL ??
-    process.env.API_BASE_URL ??
-    "http://localhost:8081"
-  );
+  const base = process.env.API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (!base) {
+    throw new Error("Missing API base URL. Set API_BASE_URL (preferred) or NEXT_PUBLIC_API_BASE_URL.");
+  }
+  return base;
 }
