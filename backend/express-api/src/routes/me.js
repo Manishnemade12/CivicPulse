@@ -1,7 +1,7 @@
 // src/routes/me.js
 // GET /api/me  →  return the authenticated user's profile
 const express = require('express');
-const pool    = require('../config/db');
+const supabase = require('../config/supabase');
 const { requireAuth } = require('../middleware/auth');
 const { AppError }    = require('../middleware/errorHandler');
 
@@ -14,11 +14,14 @@ const router = express.Router();
  */
 router.get('/', requireAuth, async (req, res, next) => {
   try {
-    const result = await pool.query(
-      'SELECT id, name, email, role, created_at FROM users WHERE id = $1',
-      [req.user.id]
-    );
-    const user = result.rows[0];
+    const { data: users, error } = await supabase
+      .from('users')
+      .select('id, name, email, role, created_at')
+      .eq('id', req.user.id)
+      .limit(1);
+
+    if (error) throw error;
+    const user = users && users[0];
     if (!user) throw AppError.notFound('User not found');
 
     return res.json({

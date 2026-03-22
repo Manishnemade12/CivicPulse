@@ -4,7 +4,7 @@
 const express  = require('express');
 const bcrypt   = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
-const pool     = require('../config/db');
+const supabase = require('../config/supabase');
 const { signToken } = require('../config/jwt');
 const { validate, z } = require('../middleware/validate');
 const { AppError } = require('../middleware/errorHandler');
@@ -37,22 +37,31 @@ router.post('/register', validate(registerSchema), async (req, res, next) => {
     const normalizedEmail = email.toLowerCase();
 
     // Check duplicate email
-    const existing = await pool.query(
-      'SELECT id FROM users WHERE email = $1',
-      [normalizedEmail]
-    );
-    if (existing.rows.length > 0) {
+    const { data: existing, error: existingError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', normalizedEmail)
+      .limit(1);
+
+    if (existingError) throw existingError;
+    if ((existing || []).length > 0) {
       throw AppError.conflict('Email already registered');
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
     const id = uuidv4();
 
-    await pool.query(
-      `INSERT INTO users (id, name, email, password_hash, role, created_at)
-       VALUES ($1, $2, $3, $4, 'USER', NOW())`,
-      [id, name, normalizedEmail, passwordHash]
-    );
+    const { error: insertError } = await supabase
+      .from('users')
+      .insert({
+        id,
+        name,
+        email: normalizedEmail,
+        password_hash: passwordHash,
+        role: 'USER',
+      });
+
+    if (insertError) throw insertError;
 
     const token = signToken({ id, email: normalizedEmail, role: 'USER' });
     return res.status(201).json({ token });
@@ -71,11 +80,14 @@ router.post('/login', validate(loginSchema), async (req, res, next) => {
     const { email, password } = req.body;
     const normalizedEmail = email.toLowerCase();
 
-    const result = await pool.query(
-      'SELECT id, email, password_hash, role FROM users WHERE email = $1',
-      [normalizedEmail]
-    );
-    const user = result.rows[0];
+    const { data: users, error: userError } = await supabase
+      .from('users')
+      .select('id, email, password_hash, role')
+      .eq('email', normalizedEmail)
+      .limit(1);
+
+    if (userError) throw userError;
+    const user = users && users[0];
 
     if (!user) {
       throw AppError.unauthorized('Invalid email or password');
@@ -132,20 +144,28 @@ router.post('/admin/register', validate(adminRegisterSchema), async (req, res, n
     const normalizedEmail = email.toLowerCase();
 
     // Check duplicate email
-    const existing = await pool.query(
-      'SELECT id, role FROM users WHERE email = $1',
-      [normalizedEmail]
-    );
+    const { data: existing, error: existingError } = await supabase
+      .from('users')
+      .select('id, role')
+      .eq('email', normalizedEmail)
+      .limit(1);
 
-    if (existing.rows.length > 0) {
-      const row = existing.rows[0];
+    if (existingError) throw existingError;
+
+    if ((existing || []).length > 0) {
+      const row = existing[0];
       if (row.role === 'ADMIN') {
         // Already an admin — just return a token (idempotent)
         const token = signToken({ id: row.id, email: normalizedEmail, role: 'ADMIN' });
         return res.json({ token, message: 'User was already an admin' });
       }
       // Exists as USER — upgrade to ADMIN
-      await pool.query("UPDATE users SET role = 'ADMIN' WHERE id = $1", [row.id]);
+      const { error: updateRoleError } = await supabase
+        .from('users')
+        .update({ role: 'ADMIN' })
+        .eq('id', row.id);
+
+      if (updateRoleError) throw updateRoleError;
       const token = signToken({ id: row.id, email: normalizedEmail, role: 'ADMIN' });
       return res.json({ token, message: 'Existing user upgraded to ADMIN' });
     }
@@ -154,11 +174,17 @@ router.post('/admin/register', validate(adminRegisterSchema), async (req, res, n
     const passwordHash = await bcrypt.hash(password, 12);
     const id = uuidv4();
 
-    await pool.query(
-      `INSERT INTO users (id, name, email, password_hash, role, created_at)
-       VALUES ($1, $2, $3, $4, 'ADMIN', NOW())`,
-      [id, name, normalizedEmail, passwordHash]
-    );
+    const { error: insertAdminError } = await supabase
+      .from('users')
+      .insert({
+        id,
+        name,
+        email: normalizedEmail,
+        password_hash: passwordHash,
+        role: 'ADMIN',
+      });
+
+    if (insertAdminError) throw insertAdminError;
 
     const token = signToken({ id, email: normalizedEmail, role: 'ADMIN' });
     return res.status(201).json({ token });

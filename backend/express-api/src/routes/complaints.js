@@ -10,7 +10,7 @@
 
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
-const pool   = require('../config/db');
+const supabase = require('../config/supabase');
 const { validate, z } = require('../middleware/validate');
 const { AppError }    = require('../middleware/errorHandler');
 
@@ -49,21 +49,40 @@ router.post('/', validate(createComplaintSchema), async (req, res, next) => {
     const { areaId, categoryId, anonymousUserHash, title, description, images } = req.body;
 
     // Verify area exists
-    const areaResult = await pool.query('SELECT id FROM areas WHERE id = $1', [areaId]);
-    if (areaResult.rows.length === 0) throw AppError.notFound('Area not found');
+    const { data: areaRows, error: areaError } = await supabase
+      .from('areas')
+      .select('id')
+      .eq('id', areaId)
+      .limit(1);
+    if (areaError) throw areaError;
+    if ((areaRows || []).length === 0) throw AppError.notFound('Area not found');
 
     // Verify category exists
-    const catResult = await pool.query('SELECT id FROM complaint_categories WHERE id = $1', [categoryId]);
-    if (catResult.rows.length === 0) throw AppError.notFound('Category not found');
+    const { data: categoryRows, error: categoryError } = await supabase
+      .from('complaint_categories')
+      .select('id')
+      .eq('id', categoryId)
+      .limit(1);
+    if (categoryError) throw categoryError;
+    if ((categoryRows || []).length === 0) throw AppError.notFound('Category not found');
 
     const id = uuidv4();
     const imagesArr = images && images.length > 0 ? images : null;
 
-    await pool.query(
-      `INSERT INTO complaints (id, area_id, category_id, anonymous_user_hash, title, description, images, status, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'RAISED', NOW(), NOW())`,
-      [id, areaId, categoryId, anonymousUserHash, title, description, imagesArr]
-    );
+    const { error: insertError } = await supabase
+      .from('complaints')
+      .insert({
+        id,
+        area_id: areaId,
+        category_id: categoryId,
+        anonymous_user_hash: anonymousUserHash,
+        title,
+        description,
+        images: imagesArr,
+        status: 'RAISED',
+      });
+
+    if (insertError) throw insertError;
 
     return res.status(201).json({ id });
   } catch (err) {
@@ -82,15 +101,15 @@ router.get('/my', async (req, res, next) => {
       throw AppError.badRequest('anonymousUserHash query param is required (10-255 chars)');
     }
 
-    const result = await pool.query(
-      `SELECT id, title, status, created_at, updated_at
-       FROM complaints
-       WHERE anonymous_user_hash = $1
-       ORDER BY created_at DESC`,
-      [anonHash]
-    );
+    const { data, error } = await supabase
+      .from('complaints')
+      .select('id, title, status, created_at, updated_at')
+      .eq('anonymous_user_hash', anonHash)
+      .order('created_at', { ascending: false });
 
-    return res.json(result.rows.map((c) => ({
+    if (error) throw error;
+
+    return res.json((data || []).map((c) => ({
       id:        c.id,
       title:     c.title,
       status:    c.status,
@@ -114,13 +133,15 @@ router.get('/:id', async (req, res, next) => {
       throw AppError.badRequest('anonymousUserHash query param is required (10-255 chars)');
     }
 
-    const result = await pool.query(
-      `SELECT id, title, description, status, images, created_at, updated_at
-       FROM complaints
-       WHERE id = $1 AND anonymous_user_hash = $2`,
-      [id, anonHash]
-    );
-    const c = result.rows[0];
+    const { data, error } = await supabase
+      .from('complaints')
+      .select('id, title, description, status, images, created_at, updated_at')
+      .eq('id', id)
+      .eq('anonymous_user_hash', anonHash)
+      .limit(1);
+
+    if (error) throw error;
+    const c = data && data[0];
     if (!c) throw AppError.notFound('Complaint not found');
 
     return res.json({
@@ -150,13 +171,21 @@ router.delete('/:id', async (req, res, next) => {
     }
 
     // Defensive cleanup of complaint actions (mirrors Spring's complaintActionRepository.deleteByComplaintId)
-    await pool.query('DELETE FROM complaint_actions WHERE complaint_id = $1', [id]);
+    const { error: deleteActionsError } = await supabase
+      .from('complaint_actions')
+      .delete()
+      .eq('complaint_id', id);
+    if (deleteActionsError) throw deleteActionsError;
 
-    const result = await pool.query(
-      'DELETE FROM complaints WHERE id = $1 AND anonymous_user_hash = $2',
-      [id, anonHash]
-    );
-    if (result.rowCount === 0) throw AppError.notFound('Complaint not found');
+    const { data: deletedRows, error: deleteComplaintError } = await supabase
+      .from('complaints')
+      .delete()
+      .eq('id', id)
+      .eq('anonymous_user_hash', anonHash)
+      .select('id');
+
+    if (deleteComplaintError) throw deleteComplaintError;
+    if ((deletedRows || []).length === 0) throw AppError.notFound('Complaint not found');
 
     return res.json({ ok: true });
   } catch (err) {

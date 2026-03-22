@@ -6,7 +6,7 @@
 
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
-const pool       = require('../config/db');
+const supabase = require('../config/supabase');
 const { requireAuth } = require('../middleware/auth');
 const requireAdmin    = require('../middleware/requireAdmin');
 const { validate, z } = require('../middleware/validate');
@@ -50,52 +50,53 @@ router.get('/complaints', async (req, res, next) => {
       throw AppError.badRequest('Invalid status value. Must be one of: RAISED, IN_PROGRESS, RESOLVED');
     }
 
-    // Build dynamic WHERE clause
-    const conditions = [];
-    const params     = [];
-    let   idx        = 1;
+    let complaintsQuery = supabase
+      .from('complaints')
+      .select('id, title, status, created_at, area_id, category_id')
+      .order('created_at', { ascending: false });
 
-    if (status) {
-      conditions.push(`c.status = $${idx++}::complaint_status`);
-      params.push(status);
-    }
-    if (areaId) {
-      conditions.push(`c.area_id = $${idx++}`);
-      params.push(areaId);
-    }
+    if (status) complaintsQuery = complaintsQuery.eq('status', status);
+    if (areaId) complaintsQuery = complaintsQuery.eq('area_id', areaId);
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const { data: complaints, error: complaintsError } = await complaintsQuery;
+    if (complaintsError) throw complaintsError;
 
-    const result = await pool.query(
-      `SELECT
-         c.id,
-         c.title,
-         c.status,
-         c.created_at,
-         a.id   AS area_id,
-         a.city AS area_city,
-         a.zone AS area_zone,
-         a.ward AS area_ward,
-         cat.id   AS category_id,
-         cat.name AS category_name
-       FROM complaints c
-       JOIN areas a                  ON a.id   = c.area_id
-       JOIN complaint_categories cat ON cat.id = c.category_id
-       ${whereClause}
-       ORDER BY c.created_at DESC`,
-      params
-    );
+    const areaIds = [...new Set((complaints || []).map((c) => c.area_id).filter(Boolean))];
+    const categoryIds = [...new Set((complaints || []).map((c) => c.category_id).filter(Boolean))];
 
-    return res.json(result.rows.map((c) => ({
+    const [{ data: areas, error: areasError }, { data: categories, error: categoriesError }] = await Promise.all([
+      areaIds.length > 0
+        ? supabase.from('areas').select('id, city, zone, ward').in('id', areaIds)
+        : Promise.resolve({ data: [], error: null }),
+      categoryIds.length > 0
+        ? supabase.from('complaint_categories').select('id, name').in('id', categoryIds)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+
+    if (areasError) throw areasError;
+    if (categoriesError) throw categoriesError;
+
+    const areaMap = new Map((areas || []).map((a) => [a.id, a]));
+    const categoryMap = new Map((categories || []).map((cat) => [cat.id, cat]));
+
+    return res.json((complaints || []).map((c) => {
+      const area = areaMap.get(c.area_id) || {};
+      const category = categoryMap.get(c.category_id) || {};
+      return {
       id:           c.id,
       title:        c.title,
       status:       c.status,
       areaId:       c.area_id,
-      areaName:     formatArea(c),
+      areaName:     formatArea({
+        area_city: area.city,
+        area_zone: area.zone,
+        area_ward: area.ward,
+      }),
       categoryId:   c.category_id,
-      categoryName: c.category_name,
+      categoryName: category.name || null,
       createdAt:    c.created_at,
-    })));
+    };
+    }));
   } catch (err) {
     next(err);
   }
@@ -111,10 +112,7 @@ router.get('/complaints', async (req, res, next) => {
  *   3. If transition → RESOLVED: auto-create a RESOLVED_COMPLAINT community post (de-duped)
  */
 router.post('/complaints/:id/status', validate(updateStatusSchema), async (req, res, next) => {
-  const client = await pool.connect();
   try {
-    await client.query('BEGIN');
-
     const { id } = req.params;
     const { status: newStatus, comment } = req.body;
 
@@ -123,34 +121,45 @@ router.post('/complaints/:id/status', validate(updateStatusSchema), async (req, 
     }
 
     // Fetch complaint
-    const complaintResult = await client.query(
-      'SELECT id, title, status FROM complaints WHERE id = $1',
-      [id]
-    );
-    const complaint = complaintResult.rows[0];
+    const { data: complaintRows, error: complaintError } = await supabase
+      .from('complaints')
+      .select('id, title, status')
+      .eq('id', id)
+      .limit(1);
+
+    if (complaintError) throw complaintError;
+    const complaint = complaintRows && complaintRows[0];
     if (!complaint) throw AppError.notFound('Complaint not found');
 
     const previousStatus = complaint.status;
 
     // Fetch admin user (to log action)
-    const adminResult = await client.query(
-      'SELECT id FROM users WHERE id = $1',
-      [req.user.id]
-    );
-    if (adminResult.rows.length === 0) throw AppError.notFound('Admin user not found');
+    const { data: adminRows, error: adminError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', req.user.id)
+      .limit(1);
+    if (adminError) throw adminError;
+    if ((adminRows || []).length === 0) throw AppError.notFound('Admin user not found');
 
     // 1. Update complaint status
-    await client.query(
-      `UPDATE complaints SET status = $1::complaint_status, updated_at = NOW() WHERE id = $2`,
-      [newStatus, id]
-    );
+    const { error: updateStatusError } = await supabase
+      .from('complaints')
+      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .eq('id', id);
+    if (updateStatusError) throw updateStatusError;
 
     // 2. Log complaint action
-    await client.query(
-      `INSERT INTO complaint_actions (id, complaint_id, admin_id, action, comment, created_at)
-       VALUES ($1, $2, $3, 'STATUS_UPDATE', $4, NOW())`,
-      [uuidv4(), id, req.user.id, comment || null]
-    );
+    const { error: actionInsertError } = await supabase
+      .from('complaint_actions')
+      .insert({
+        id: uuidv4(),
+        complaint_id: id,
+        admin_id: req.user.id,
+        action: 'STATUS_UPDATE',
+        comment: comment || null,
+      });
+    if (actionInsertError) throw actionInsertError;
 
     // 3. Auto-post community post when resolving
     if (previousStatus !== 'RESOLVED' && newStatus === 'RESOLVED') {
@@ -160,12 +169,16 @@ router.post('/complaints/:id/status', validate(updateStatusSchema), async (req, 
       if (postTitle.length > 200) postTitle = postTitle.substring(0, 200);
 
       // De-duplicate: only create if this title doesn't already exist
-      const existsResult = await client.query(
-        `SELECT id FROM community_posts WHERE type = 'RESOLVED_COMPLAINT' AND title = $1`,
-        [postTitle]
-      );
+      const { data: existingPosts, error: existsError } = await supabase
+        .from('community_posts')
+        .select('id')
+        .eq('type', 'RESOLVED_COMPLAINT')
+        .eq('title', postTitle)
+        .limit(1);
 
-      if (existsResult.rows.length === 0) {
+      if (existsError) throw existsError;
+
+      if ((existingPosts || []).length === 0) {
         const trimmedComment = comment ? comment.trim() : '';
         const postContent = [
           'Complaint resolved.',
@@ -174,21 +187,24 @@ router.post('/complaints/:id/status', validate(updateStatusSchema), async (req, 
           trimmedComment ? `Resolution note: ${trimmedComment}` : '',
         ].filter((line, i) => i < 3 || line !== '').join('\n');
 
-        await client.query(
-          `INSERT INTO community_posts (id, user_id, type, title, content, media_urls, created_at)
-           VALUES ($1, NULL, 'RESOLVED_COMPLAINT', $2, $3, NULL, NOW())`,
-          [uuidv4(), postTitle, postContent]
-        );
+        const { error: insertPostError } = await supabase
+          .from('community_posts')
+          .insert({
+            id: uuidv4(),
+            user_id: null,
+            type: 'RESOLVED_COMPLAINT',
+            title: postTitle,
+            content: postContent,
+            media_urls: null,
+          });
+
+        if (insertPostError) throw insertPostError;
       }
     }
 
-    await client.query('COMMIT');
     return res.json({ ok: true });
   } catch (err) {
-    await client.query('ROLLBACK');
     next(err);
-  } finally {
-    client.release();
   }
 });
 

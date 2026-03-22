@@ -1,7 +1,7 @@
 // src/routes/health.js
 // GET /api/db/health  →  check DB connectivity (public)
 const express = require('express');
-const pool    = require('../config/db');
+const supabase = require('../config/supabase');
 
 const router = express.Router();
 
@@ -12,7 +12,12 @@ const router = express.Router();
  */
 router.get('/db/health', async (req, res) => {
   try {
-    await pool.query('SELECT 1');
+    const { error } = await supabase
+      .from('users')
+      .select('id', { head: true, count: 'exact' })
+      .limit(1);
+
+    if (error) throw error;
     return res.json({ status: 'ok', database: 'connected' });
   } catch (err) {
     console.error('[DB Health] Failed:', err.message);

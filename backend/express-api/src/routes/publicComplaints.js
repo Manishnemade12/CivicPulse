@@ -4,7 +4,7 @@
 // Mirrors the @GetMapping("/api/public-complaints") endpoints in ComplaintController
 
 const express = require('express');
-const pool    = require('../config/db');
+const supabase = require('../config/supabase');
 const { AppError } = require('../middleware/errorHandler');
 
 const router = express.Router();
@@ -22,34 +22,49 @@ function formatArea(row) {
  */
 router.get('/', async (req, res, next) => {
   try {
-    const result = await pool.query(
-      `SELECT
-         c.id,
-         c.title,
-         c.status,
-         c.created_at,
-         a.id    AS area_id,
-         a.city  AS area_city,
-         a.zone  AS area_zone,
-         a.ward  AS area_ward,
-         cat.id  AS category_id,
-         cat.name AS category_name
-       FROM complaints c
-       JOIN areas a              ON a.id = c.area_id
-       JOIN complaint_categories cat ON cat.id = c.category_id
-       ORDER BY c.created_at DESC`
-    );
+    const { data: complaints, error: complaintsError } = await supabase
+      .from('complaints')
+      .select('id, title, status, created_at, area_id, category_id')
+      .order('created_at', { ascending: false });
 
-    return res.json(result.rows.map((c) => ({
+    if (complaintsError) throw complaintsError;
+
+    const areaIds = [...new Set((complaints || []).map((c) => c.area_id).filter(Boolean))];
+    const categoryIds = [...new Set((complaints || []).map((c) => c.category_id).filter(Boolean))];
+
+    const [{ data: areas, error: areasError }, { data: categories, error: categoriesError }] = await Promise.all([
+      areaIds.length > 0
+        ? supabase.from('areas').select('id, city, zone, ward').in('id', areaIds)
+        : Promise.resolve({ data: [], error: null }),
+      categoryIds.length > 0
+        ? supabase.from('complaint_categories').select('id, name').in('id', categoryIds)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+
+    if (areasError) throw areasError;
+    if (categoriesError) throw categoriesError;
+
+    const areaMap = new Map((areas || []).map((a) => [a.id, a]));
+    const categoryMap = new Map((categories || []).map((cat) => [cat.id, cat]));
+
+    return res.json((complaints || []).map((c) => {
+      const area = areaMap.get(c.area_id) || {};
+      const category = categoryMap.get(c.category_id) || {};
+      return {
       id:           c.id,
       title:        c.title,
       status:       c.status,
       areaId:       c.area_id,
-      areaName:     formatArea(c),
+      areaName:     formatArea({
+        area_city: area.city,
+        area_zone: area.zone,
+        area_ward: area.ward,
+      }),
       categoryId:   c.category_id,
-      categoryName: c.category_name,
+      categoryName: category.name || null,
       createdAt:    c.created_at,
-    })));
+    };
+    }));
   } catch (err) {
     next(err);
   }
@@ -62,12 +77,14 @@ router.get('/', async (req, res, next) => {
 router.get('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
-    const result = await pool.query(
-      `SELECT id, title, description, status, images, created_at, updated_at
-       FROM complaints WHERE id = $1`,
-      [id]
-    );
-    const c = result.rows[0];
+    const { data, error } = await supabase
+      .from('complaints')
+      .select('id, title, description, status, images, created_at, updated_at')
+      .eq('id', id)
+      .limit(1);
+
+    if (error) throw error;
+    const c = data && data[0];
     if (!c) throw AppError.notFound('Complaint not found');
 
     return res.json({
